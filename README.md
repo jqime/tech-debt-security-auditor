@@ -76,6 +76,17 @@ jobs:
 
 ---
 
+## 💰 Planes de Precios
+
+| Plan | Precio | Incluye |
+|------|--------|---------|
+| **Gratuito** | 0 € | 1 auditoría pública/mes, informe básico sin compliance |
+| **Pro** | 299 €/aud | Informe técnico completo, dashboard, email |
+| **Compliance Pro** | 1.500 €/aud | Informe NIS2/DORA, certificación blockchain, hash + QR, declaración de debida diligencia para auditores |
+| **Enterprise** | 10.000 €/año | Dashboard multi-equipo, integración Jira, monitoreo continuo, alertas, SLA 4h, onboarding dedicado |
+
+---
+
 ## 💼 Módulos de Negocio
 
 ### 1. Prospección de Clientes (`prospect.py`)
@@ -217,6 +228,9 @@ Artículos sobre seguridad, calidad de código, automatización y negocio:
 ```
 tech-debt-security-auditor/
 ├── run-audit.sh              # 🚀 Script maestro de auditoría
+├── compliance_report.py      # 📋 Informe NIS2/DORA
+├── certify.py                # 🔏 Certificación blockchain
+├── test_compliance.sh        # 🧪 Demo de compliance
 ├── runner.py                 # Cola de tareas
 ├── email_sender.py           # Envío de emails
 ├── payment.py                # Integración Stripe

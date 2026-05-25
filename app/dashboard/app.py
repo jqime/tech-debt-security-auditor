@@ -85,6 +85,19 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
+        CREATE TABLE IF NOT EXISTS compliance_scores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER,
+            repo_url TEXT,
+            secrets_score REAL,
+            vulnerabilities_score REAL,
+            complexity_score REAL,
+            duplication_score REAL,
+            perimeter_score REAL,
+            overall_score REAL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (task_id) REFERENCES tasks(id)
+        );
     """)
     # Create admin if not exists
     existing = conn.execute("SELECT id FROM users WHERE email = ?", (ADMIN_USER,)).fetchone()
@@ -187,6 +200,7 @@ body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif}
 <a class="nav-link {{'active' if tab=='dashboard'}}" href="/"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
 <a class="nav-link {{'active' if tab=='tasks'}}" href="/?tab=tasks"><i class="bi bi-list-task me-2"></i>Mis Tareas</a>
 <a class="nav-link {{'active' if tab=='invoices'}}" href="/?tab=invoices"><i class="bi bi-credit-card me-2"></i>Pagos</a>
+<a class="nav-link {{'active' if tab=='compliance'}}" href="/?tab=compliance"><i class="bi bi-shield-check me-2"></i>Cumplimiento</a>
 {% if current_user.is_admin %}
 <a class="nav-link {{'active' if tab=='leads'}}" href="/?tab=leads"><i class="bi bi-people me-2"></i>Leads</a>
 <a class="nav-link {{'active' if tab=='users'}}" href="/?tab=users"><i class="bi bi-person-badge me-2"></i>Usuarios</a>
@@ -220,6 +234,61 @@ body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif}
 <tbody>{% for p in payments %}
 <tr><td>{{p.id}}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">{{p.stripe_session_id}}</td><td>{{p.amount/100}}€</td><td>{{p.status}}</td><td>{{p.created_at[:10]}}</td></tr>
 {% endfor %}</tbody></table></div></div>
+
+{% elif tab=='compliance' %}
+<h4 class="mb-4"><i class="bi bi-shield-check me-2"></i>Cumplimiento Normativo</h4>
+<div class="row g-4">
+<div class="col-md-6">
+<div class="card"><h5>Score de cumplimiento</h5>
+<canvas id="radarChart" height="300"></canvas>
+</div></div>
+<div class="col-md-6">
+<div class="card"><h5>Evolución temporal</h5>
+<canvas id="evolutionChart" height="300"></canvas>
+</div></div>
+</div>
+<div class="card mt-3">
+<h5>Desglose NIS2/DORA</h5>
+<table class="table table-dark"><thead><tr><th>Dimensión</th><th>Score</th><th>Estado</th></tr></thead>
+<tbody id="complianceBody"></tbody></table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+async function loadCompliance() {
+  const resp = await fetch('/compliance-scores');
+  const data = await resp.json();
+  const scores = data.scores;
+  if (!scores.length) { document.getElementById('complianceBody').innerHTML = '<tr><td colspan="3" class="text-muted">No hay datos de cumplimiento aún. Ejecuta una auditoría primero.</td></tr>'; return; }
+  const last = scores[scores.length-1];
+  const labels = ['Secretos', 'Vulnerabilidades', 'Complejidad', 'Duplicación', 'Seguridad Perimetral'];
+  const vals = [last.secrets_score, last.vulnerabilities_score, last.complexity_score, last.duplication_score, last.perimeter_score];
+  const overall = last.overall_score;
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: { labels, datasets: [{ label:'Cumplimiento', data: vals, backgroundColor:'rgba(99,102,241,0.2)', borderColor:'#6366f1', pointBackgroundColor:'#818cf8' }] },
+    options: { scales: { r: { min:0, max:100, grid:{color:'#1e293b'}, pointLabels:{color:'#94a3b8'}, ticks:{color:'#64748b'} } }, plugins: { legend:{display:false} } }
+  });
+  if (scores.length > 1) {
+    const dates = scores.map(s => s.created_at.slice(5,10));
+    const evals = scores.map(s => s.overall_score);
+    new Chart(document.getElementById('evolutionChart'), {
+      type: 'line',
+      data: { labels: dates, datasets: [{ label:'Score global', data: evals, borderColor:'#10b981', tension:0.3, fill:false }] },
+      options: { scales: { y:{ min:0, max:100, grid:{color:'#1e293b'}, ticks:{color:'#64748b'} }, x:{ ticks:{color:'#64748b'} } }, plugins: { legend:{display:false} } }
+    });
+  } else {
+    document.getElementById('evolutionChart').parentNode.innerHTML = '<p class="text-muted">Se necesitan al menos 2 auditorías del mismo repo para ver evolución temporal.</p>';
+  }
+  const dims = [ ['Secretos', last.secrets_score], ['Vulnerabilidades', last.vulnerabilities_score], ['Complejidad', last.complexity_score], ['Duplicación', last.duplication_score], ['Seguridad Perimetral', last.perimeter_score] ];
+  document.getElementById('complianceBody').innerHTML = dims.map(([n,v]) => {
+    const status = v >= 70 ? '✅' : v >= 40 ? '⚠️' : '❌';
+    const bar = '<div class="score-bar" style="background:#1e293b;height:6px;border-radius:3px;margin-top:4px"><div class="score-fill" style="width:'+v+'%;height:6px;border-radius:3px;background:linear-gradient(90deg,#f43f5e,#fbbf24,#10b981)"></div></div>';
+    return '<tr><td>'+n+'</td><td>'+bar+'<small class="text-muted">'+v+'/100</small></td><td>'+status+'</td></tr>';
+  }).join('');
+}
+loadCompliance();
+</script>
+<style>.score-bar,.score-fill{display:block}</style>
 
 {% elif tab=='tasks' %}
 <h4 class="mb-4"><i class="bi bi-list-task me-2"></i>Tareas</h4>
@@ -350,6 +419,41 @@ def register():
 def logout():
     logout_user()
     return redirect("/")
+
+
+@app.route("/save-compliance", methods=["POST"])
+@login_required
+def save_compliance():
+    data = request.get_json(silent=True) or {}
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO compliance_scores (task_id, repo_url, secrets_score, vulnerabilities_score, complexity_score, duplication_score, perimeter_score, overall_score) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            data.get("task_id", 0),
+            data.get("repo_url", ""),
+            data.get("secrets_score", 0),
+            data.get("vulnerabilities_score", 0),
+            data.get("complexity_score", 0),
+            data.get("duplication_score", 0),
+            data.get("perimeter_score", 0),
+            data.get("overall_score", 0),
+        ),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.route("/compliance-scores")
+def get_compliance_scores():
+    repo_url = request.args.get("repo", "")
+    conn = get_db()
+    if repo_url:
+        rows = conn.execute("SELECT * FROM compliance_scores WHERE repo_url = ? ORDER BY created_at ASC", (repo_url,)).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM compliance_scores ORDER BY created_at DESC LIMIT 20").fetchall()
+    conn.close()
+    return {"scores": [dict(r) for r in rows]}
 
 
 @app.route("/run-task", methods=["POST"])
