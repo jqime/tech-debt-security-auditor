@@ -255,3 +255,114 @@ tech-debt-security-auditor/
 ## 📄 BUSINESS PLAN
 
 Ver `BUSINESS_PLAN.md` para estrategia completa de precios, márgenes y adquisición de clientes.
+
+---
+
+## 🚀 Despliegue en Producción (VPS)
+
+### Requisitos mínimos
+
+- VPS con 1 CPU, 1 GB RAM, 20 GB SSD (DigitalOcean $6/mo, Hetzner $4/mo)
+- Ubuntu 22.04+ / Debian 12+
+- Dominio apuntando al VPS (opcional pero recomendado)
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/jqime/tech-debt-security-auditor.git
+cd tech-debt-security-auditor
+```
+
+### 2. Configurar variables de entorno
+
+```bash
+export STRIPE_SECRET_KEY="sk_test_..."          # Stripe (modo test)
+export STRIPE_WEBHOOK_SECRET="whsec_..."         # Stripe webhook secret
+export EMAIL_USER="tuemail@gmail.com"            # Gmail
+export EMAIL_PASS="contraseña_aplicacion"        # App password de Gmail
+export DASHBOARD_USER="admin"                    # Admin dashboard
+export DASHBOARD_PASS="contraseña_segura"        # Cambiar en producción
+export DASHBOARD_SECRET="clave_secreta_aleatoria" # Flask session key
+export DOMAIN="https://tudominio.com"             # Para redirects Stripe
+```
+
+Para variables persistentes, crea un archivo `.env`:
+
+```bash
+cat > .env << EOF
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+EMAIL_USER=tuemail@gmail.com
+EMAIL_PASS=contraseña_aplicacion
+DASHBOARD_USER=admin
+DASHBOARD_PASS=cambiar123
+DASHBOARD_SECRET=$(openssl rand -hex 32)
+DOMAIN=https://tudominio.com
+EOF
+```
+
+### 3. Ejecutar deploy automático
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Esto instala dependencias, arranca los 4 servicios y los deja corriendo.
+
+### 4. Proxy inverso con nginx (recomendado)
+
+```nginx
+server {
+    listen 80;
+    server_name tudominio.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;  # Dashboard
+        proxy_set_header Host $host;
+    }
+
+    location /submit-lead {
+        proxy_pass http://127.0.0.1:5001;  # Landing handler
+    }
+
+    location /create-checkout-session {
+        proxy_pass http://127.0.0.1:5002;  # Payment
+    }
+
+    location /stripe-webhook {
+        proxy_pass http://127.0.0.1:5002;
+    }
+}
+```
+
+### 5. Systemd services (producción)
+
+Crea `/etc/systemd/system/codeaudit-*.service` para cada servicio:
+
+```bash
+# Ejemplo: /etc/systemd/system/codeaudit-dashboard.service
+[Unit]
+Description=CodeAudit Pro Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/tech-debt-security-auditor
+EnvironmentFile=/opt/tech-debt-security-auditor/.env
+ExecStart=/usr/bin/python3 app/dashboard/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6. Estructura de puertos
+
+| Servicio | Puerto | Descripción |
+|----------|--------|-------------|
+| Dashboard | 5000 | Panel web multi-usuario |
+| Landing handler | 5001 | Formulario de leads |
+| Payment | 5002 | Stripe checkout + webhooks |
+| Runner (daemon) | — | Cola de tareas automática |

@@ -10,7 +10,6 @@ from pathlib import Path
 
 EMAIL_USER = os.getenv("EMAIL_USER", "")
 EMAIL_PASS = os.getenv("EMAIL_PASS", "")
-
 SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
@@ -20,15 +19,14 @@ def send_email(
     subject: str,
     html_body: str = "",
     attach_path: str | None = None,
-    smtp_server: str = SMTP_SERVER,
-    smtp_port: int = SMTP_PORT,
 ) -> bool:
     if not EMAIL_USER or not EMAIL_PASS:
-        print(f"ℹ️  Modo simulado: email enviado a {to_email}")
-        print(f"   Asunto: {subject}")
+        print(f"⚠️  EMAIL_USER/EMAIL_PASS no definidas. Modo simulado.")
+        print(f"📧  Para: {to_email}")
+        print(f"📝  Asunto: {subject}")
         if attach_path:
-            print(f"   Adjunto: {attach_path}")
-        print(f"   (Define EMAIL_USER y EMAIL_PASS para envío real)")
+            print(f"📎  Adjunto: {attach_path}")
+        print("   Define las variables de entorno para envío real con Gmail.")
         return True
 
     msg = MIMEMultipart("mixed")
@@ -37,11 +35,10 @@ def send_email(
     msg["Subject"] = subject
 
     body = html_body or f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4;">
-<div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px;">
-    <h2 style="color: #6366f1;">🛡️ CodeAudit Pro - Informe de Auditoría</h2>
+<html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
+<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;padding:30px;">
+    <h2 style="color:#6366f1;">🛡️ CodeAudit Pro - Informe de Auditoría</h2>
     <p>Estimado cliente,</p>
     <p>Adjuntamos el informe ejecutivo de la auditoría de seguridad y calidad de su código.</p>
     <p>El informe incluye:</p>
@@ -50,14 +47,12 @@ def send_email(
         <li>📊 Medición de deuda técnica</li>
         <li>📝 Recomendaciones priorizadas</li>
     </ul>
-    <p>Si tiene alguna pregunta, no dude en responder a este correo.</p>
-    <p style="margin-top: 30px; color: #94a3b8; font-size: 12px;">
+    <p>Si tiene alguna pregunta, responda a este correo.</p>
+    <p style="margin-top:30px;color:#94a3b8;font-size:12px;">
         CodeAudit Pro · Auditoría de código para PYMES<br>
         Este es un mensaje automático.
     </p>
-</div>
-</body>
-</html>"""
+</div></body></html>"""
 
     msg.attach(MIMEText(body, "html", "utf-8"))
 
@@ -71,22 +66,26 @@ def send_email(
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls(context=context)
             server.login(EMAIL_USER, EMAIL_PASS)
             server.send_message(msg)
-        print(f"✓ Email enviado a {to_email}")
+        print(f"✓ Email real enviado a {to_email}")
         return True
+    except smtplib.SMTPAuthenticationError:
+        print(f"❌ Error de autenticación Gmail. Revisa EMAIL_USER/EMAIL_PASS.")
+        print("   Si usas Gmail, necesitas una contraseña de aplicación (no tu contraseña normal).")
+        return False
     except Exception as e:
         print(f"❌ Error al enviar email: {e}")
         return False
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Envío automático de informes por email")
+    parser = argparse.ArgumentParser(description="Envío de informes por email")
     parser.add_argument("--to", required=True, help="Email del destinatario")
-    parser.add_argument("--subject", default="Informe de Auditoría - CodeAudit Pro", help="Asunto del correo")
-    parser.add_argument("--body", help="Ruta a archivo HTML con el cuerpo del mensaje")
+    parser.add_argument("--subject", default="Informe de Auditoría - CodeAudit Pro", help="Asunto")
+    parser.add_argument("--body", help="Ruta a archivo HTML con el cuerpo")
     parser.add_argument("--attach", help="Ruta al archivo a adjuntar")
 
     args = parser.parse_args()

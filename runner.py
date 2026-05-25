@@ -31,11 +31,12 @@ def save_tasks(tasks: list[dict]):
     TASKS_FILE.write_text(json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def add_task(repo_url: str, customer_email: str, plan_type: str = "auditoria_unica") -> dict:
+def add_task(repo_url: str, customer_email: str, plan_type: str = "auditoria_unica", user_id: int = 0) -> dict:
     ensure_tasks_file()
     tasks = load_tasks()
     task = {
         "id": len(tasks) + 1,
+        "user_id": user_id,
         "repo_url": repo_url,
         "customer_email": customer_email,
         "plan_type": plan_type,
@@ -125,6 +126,7 @@ def main():
     parser.add_argument("--add", help="Añadir tarea: repo_url")
     parser.add_argument("--email", help="Email del cliente (con --add)")
     parser.add_argument("--plan", default="auditoria_unica", help="Plan (auditoria_unica|suscripcion_mensual)")
+    parser.add_argument("--user-id", type=int, default=0, help="ID de usuario en el dashboard")
     parser.add_argument("--run-once", action="store_true", help="Procesar tareas pendientes y salir")
     parser.add_argument("--daemon", action="store_true", help="Ejecutar en bucle como daemon")
     parser.add_argument("--list", nargs="?", const="", help="Listar tareas (opcional: pending|completed|failed)")
@@ -132,7 +134,7 @@ def main():
     args = parser.parse_args()
 
     if args.add:
-        add_task(args.add, args.email or "cliente@ejemplo.com", args.plan)
+        add_task(args.add, args.email or "cliente@ejemplo.com", args.plan, args.user_id)
     elif args.run_once:
         process_pending_tasks()
     elif args.daemon:

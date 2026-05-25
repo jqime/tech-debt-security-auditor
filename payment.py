@@ -3,11 +3,15 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
+
+from flask import Flask, jsonify, request
 
 PROJECT_DIR = Path(__file__).parent
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+DOMAIN = os.getenv("DOMAIN", "http://localhost:5001")
+
+app = Flask(__name__)
 
 PRODUCTS = {
     "auditoria_unica": {"name": "Auditoría Única", "price_cents": 29900, "repo_limit": 1},
@@ -15,132 +19,138 @@ PRODUCTS = {
 }
 
 
-def setup_stripe_products():
-    if not STRIPE_SECRET_KEY:
-        print("ℹ️  Modo simulado: no hay STRIPE_SECRET_KEY")
-        print("   Define la variable de entorno para usar Stripe real.")
-        return
-
+def get_or_create_price(price_id: str) -> str:
     import stripe
     stripe.api_key = STRIPE_SECRET_KEY
 
-    for pid, product in PRODUCTS.items():
-        print(f"  Creando producto: {product['name']}...")
-        stripe_prod = stripe.Product.create(name=product["name"])
-        stripe.Price.create(
-            product=stripe_prod.id,
-            unit_amount=product["price_cents"],
-            currency="eur",
-        )
-        print(f"  ✓ Producto {product['name']} creado (ID: {stripe_prod.id})")
+    prices = stripe.Price.list(limit=100, currency="eur")
+    for p in prices:
+        if p.metadata.get("internal_id") == price_id:
+            return p.id
 
-
-def create_checkout_session(price_id: str, repo_url: str, customer_email: str) -> str | None:
-    if not STRIPE_SECRET_KEY:
-        print(f"ℹ️  Modo simulado: checkout para {price_id} - {customer_email}")
-        return "cs_simulated_checkout_id"
-
-    import stripe
-    stripe.api_key = STRIPE_SECRET_KEY
-
-    session = stripe.checkout.Session.create(
-        mode="payment" if price_id != "suscripcion_mensual" else "subscription",
-        line_items=[{"price": price_id, "quantity": 1}],
-        customer_email=customer_email,
-        metadata={"repo_url": repo_url},
-        success_url="https://tudominio.com/success?session_id={CHECKOUT_SESSION_ID}",
-        cancel_url="https://tudominio.com/cancel",
+    prod = stripe.Product.create(
+        name=PRODUCTS[price_id]["name"],
+        metadata={"internal_id": price_id},
     )
-    return session.url
+    price = stripe.Price.create(
+        product=prod.id,
+        unit_amount=PRODUCTS[price_id]["price_cents"],
+        currency="eur",
+        metadata={"internal_id": price_id},
+    )
+    return price.id
 
 
-def handle_successful_payment(repo_url: str, customer_email: str):
-    print(f"  💳 Pago recibido: {customer_email} -> {repo_url}")
-    print(f"  🚀 Iniciando auditoría para: {repo_url}")
+def handle_successful_payment(repo_url: str, customer_email: str, user_id: int | None = None):
+    print(f"  💳 Pago: {customer_email} -> {repo_url}")
     result = subprocess.run(
-        ["./run-audit.sh", repo_url],
-        capture_output=True, text=True, timeout=600,
+        [sys.executable, "runner.py", "--add", repo_url, "--email", customer_email, "--user-id", str(user_id or 0)],
+        capture_output=True, text=True, timeout=30,
         cwd=str(PROJECT_DIR),
     )
-    if result.returncode != 0:
-        print(f"  ❌ Error en auditoría: {result.stderr}")
-        return False
-
-    print(f"  ✓ Auditoría completada. Enviando informe...")
-
-    report_path = PROJECT_DIR / "reports" / "executive-report.html"
-    if not report_path.exists():
-        print(f"  ❌ No se encontró el informe: {report_path}")
-        return False
-
-    email_script = PROJECT_DIR / "email_sender.py"
-    if email_script.exists():
-        subprocess.run(
-            [sys.executable, str(email_script),
-             "--to", customer_email,
-             "--subject", f"Informe de auditoría - {repo_url}",
-             "--attach", str(report_path)],
-            cwd=str(PROJECT_DIR),
-        )
-
-    tasks_file = PROJECT_DIR / "data" / "tasks.json"
-    if tasks_file.exists():
-        try:
-            tasks = json.loads(tasks_file.read_text())
-            for t in tasks:
-                if t.get("repo_url") == repo_url and t.get("status") == "pending":
-                    t["status"] = "completed"
-            tasks_file.write_text(json.dumps(tasks, indent=2))
-        except Exception:
-            pass
-
+    if result.returncode == 0:
+        print(f"  ✓ Tarea creada para {repo_url}")
+    else:
+        print(f"  ⚠️ Error: {result.stderr}")
     return True
 
 
-def handle_stripe_webhook(payload: dict):
-    event_type = payload.get("type", "")
-    if event_type == "checkout.session.completed":
-        session = payload.get("data", {}).get("object", {})
-        repo_url = session.get("metadata", {}).get("repo_url", "")
-        customer_email = session.get("customer_details", {}).get("email", "")
-        if repo_url:
-            handle_successful_payment(repo_url, customer_email)
-    elif event_type == "invoice.paid":
-        subscription = payload.get("data", {}).get("object", {})
-        metadata = subscription.get("metadata", {})
-        repo_url = metadata.get("repo_url", "")
-        customer_email = subscription.get("customer_email", "")
-        if repo_url:
-            handle_successful_payment(repo_url, customer_email)
+@app.route("/create-checkout-session", methods=["POST"])
+def create_checkout():
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"error": "STRIPE_SECRET_KEY no configurada. Stripe no está operativo."}), 500
+
+    data = request.get_json(silent=True) or request.form
+    price_id = data.get("price_id", "")
+    repo_url = data.get("repo_url", "")
+    customer_email = data.get("customer_email", "")
+
+    if price_id not in PRODUCTS:
+        return jsonify({"error": f"price_id inválido: {price_id}"}), 400
+
+    import stripe
+    stripe.api_key = STRIPE_SECRET_KEY
+
+    stripe_price_id = get_or_create_price(price_id)
+
+    session = stripe.checkout.Session.create(
+        mode="payment" if price_id != "suscripcion_mensual" else "subscription",
+        line_items=[{"price": stripe_price_id, "quantity": 1}],
+        customer_email=customer_email,
+        metadata={"repo_url": repo_url, "customer_email": customer_email, "price_id": price_id},
+        success_url=f"{DOMAIN}/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{DOMAIN}/cancel",
+    )
+
+    return jsonify({"url": session.url, "session_id": session.id})
 
 
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Integración de pagos Stripe")
-    parser.add_argument("--setup", action="store_true", help="Crear productos en Stripe")
-    parser.add_argument("--checkout", help="ID de precio para crear sesión de checkout")
-    parser.add_argument("--repo", help="URL del repositorio a auditar")
-    parser.add_argument("--email", help="Email del cliente")
-    parser.add_argument("--webhook", help="JSON de evento webhook de Stripe (ruta a archivo o '-' para stdin)")
+@app.route("/stripe-webhook", methods=["POST"])
+def stripe_webhook():
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"error": "STRIPE_SECRET_KEY no configurada"}), 500
 
-    args = parser.parse_args()
+    import stripe
+    stripe.api_key = STRIPE_SECRET_KEY
 
-    if args.setup:
-        setup_stripe_products()
-    elif args.checkout:
-        url = create_checkout_session(args.checkout, args.repo or "", args.email or "")
-        if url:
-            print(f"URL de checkout: {url}")
-    elif args.webhook:
-        if args.webhook == "-":
-            payload = json.loads(sys.stdin.read())
-        else:
-            payload = json.loads(Path(args.webhook).read_text())
-        handle_stripe_webhook(payload)
-        print("Webhook procesado.")
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get("Stripe-Signature", "")
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+    if webhook_secret:
+        try:
+            event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+        except stripe.error.SignatureVerificationError:
+            return jsonify({"error": "Firma inválida"}), 400
     else:
-        parser.print_help()
+        event = json.loads(payload)
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        repo_url = session.get("metadata", {}).get("repo_url", "")
+        customer_email = session.get("customer_details", {}).get("email", "") or session.get("metadata", {}).get("customer_email", "")
+        if repo_url:
+            handle_successful_payment(repo_url, customer_email)
+
+    elif event["type"] == "invoice.paid":
+        sub_obj = event["data"]["object"]
+        metadata = sub_obj.get("metadata", {})
+        repo_url = metadata.get("repo_url", "")
+        customer_email = metadata.get("customer_email", "") or sub_obj.get("customer_email", "")
+        if repo_url:
+            handle_successful_payment(repo_url, customer_email)
+
+    return jsonify({"received": True})
+
+
+@app.route("/success")
+def success():
+    return """
+    <!DOCTYPE html><html><body style="background:#0b0f19;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
+    <div style="text-align:center"><h1 style="color:#10b981;">✅ Pago exitoso</h1>
+    <p>Tu auditoría está en proceso. Recibirás el informe por email en 24h.</p>
+    <a href="/" style="color:#818cf8;">Volver a CodeAudit Pro</a></div></body></html>
+    """
+
+
+@app.route("/cancel")
+def cancel():
+    return """
+    <!DOCTYPE html><html><body style="background:#0b0f19;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
+    <div style="text-align:center"><h1 style="color:#f43f5e;">❌ Pago cancelado</h1>
+    <p>No se ha realizado ningún cargo. Puedes intentarlo de nuevo cuando quieras.</p>
+    <a href="/" style="color:#818cf8;">Volver a CodeAudit Pro</a></div></body></html>
+    """
+
+
+@app.route("/health")
+def health():
+    stripe_ok = bool(STRIPE_SECRET_KEY)
+    return jsonify({"status": "ok", "stripe_configured": stripe_ok, "products": list(PRODUCTS.keys())})
 
 
 if __name__ == "__main__":
-    main()
+    port = int(os.getenv("PAYMENT_PORT", "5002"))
+    print(f"💳 Payment server en http://localhost:{port}")
+    print(f"   Stripe: {'✅ configurado' if STRIPE_SECRET_KEY else '❌ sin STRIPE_SECRET_KEY'}")
+    app.run(host="0.0.0.0", port=port, debug=False)

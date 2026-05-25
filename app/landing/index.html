@@ -423,9 +423,28 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.querySelectorAll('.stripe-checkout').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const priceId = this.dataset.priceId;
-                window.location.href = '/checkout?price_id=' + priceId;
+                const email = prompt('Email para recibir el informe:');
+                if (!email) return;
+                const repo = prompt('URL del repositorio a auditar:');
+                if (!repo) return;
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Redirigiendo...';
+                try {
+                    const resp = await fetch('http://localhost:5002/create-checkout-session', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({price_id: priceId, repo_url: repo, customer_email: email}),
+                    });
+                    const data = await resp.json();
+                    if (data.url) window.location.href = data.url;
+                    else alert('Error: ' + (data.error || 'desconocido'));
+                } catch (err) {
+                    alert('No se pudo conectar con el servidor de pagos. Asegúrate de que payment.py está corriendo en :5002.');
+                }
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-credit-card me-2"></i>' + (priceId.includes('suscripcion') ? 'Pagar 199 €/mes' : 'Pagar 299 €');
             });
         });
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
