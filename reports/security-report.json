@@ -1,0 +1,5 @@
+No secrets or dependency files found in the repository. It only contains a single `README` file with "Hello World!".
+
+```json
+{"secrets": [], "vulnerable_dependencies": []}
+```
