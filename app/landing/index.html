@@ -1,710 +1,503 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeAudit Pro - Seguridad y Calidad de Código para PYMES</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --dark-bg: #0b0f19;
-            --card-bg: #1e293b;
-            --surface: #131b2e;
-        }
-        body {
-            background: var(--dark-bg);
-            color: #f8fafc;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-        .navbar {
-            background: rgba(11, 15, 25, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid #1e293b;
-        }
-        .hero {
-            padding: 140px 0 80px;
-            background: linear-gradient(135deg, #0b0f19 0%, #131b2e 50%, #1e1b4b 100%);
-            position: relative;
-        }
-        .hero::after {
-            content: '';
-            position: absolute;
-            top: -30%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%);
-            pointer-events: none;
-        }
-        .hero h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #a5b4fc, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .hero .subtitle {
-            color: #94a3b8;
-            font-size: 1.2rem;
-        }
-        .section-title {
-            font-weight: 700;
-            margin-bottom: 3rem;
-            color: #e2e8f0;
-        }
-        .card-feature, .pricing-card, .step-card {
-            background: var(--surface);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 2rem;
-            transition: all 0.3s ease;
-        }
-        .card-feature:hover, .pricing-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 30px rgba(99,102,241,0.1);
-        }
-        .card-feature .icon {
-            font-size: 2.5rem;
-            color: var(--primary);
-        }
-        .pricing-card {
-            text-align: center;
-        }
-        .pricing-card .price {
-            font-size: 3rem;
-            font-weight: 800;
-            color: #f8fafc;
-        }
-        .pricing-card .price small {
-            font-size: 1rem;
-            color: #94a3b8;
-        }
-        .pricing-card .features {
-            list-style: none;
-            padding: 0;
-            color: #cbd5e1;
-        }
-        .pricing-card .features li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #1e293b;
-        }
-        .pricing-card .features li i {
-            color: #10b981;
-            margin-right: 0.5rem;
-        }
-        .pricing-card.popular {
-            border-color: var(--primary);
-            position: relative;
-        }
-        .pricing-card.popular::before {
-            content: 'MÁS POPULAR';
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--primary);
-            padding: 4px 16px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-        .btn-primary {
-            background: var(--primary);
-            border: none;
-            padding: 12px 32px;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-        .btn-outline-light {
-            border-radius: 12px;
-            padding: 12px 32px;
-        }
-        .form-control, .form-select {
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: #f8fafc;
-            border-radius: 12px;
-            padding: 12px 16px;
-        }
-        .form-control:focus, .form-select:focus {
-            background: #1e293b;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-            color: #f8fafc;
-        }
-        .form-control::placeholder {
-            color: #64748b;
-        }
-        .step-card .step-number {
-            width: 40px;
-            height: 40px;
-            background: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-        .stats-section {
-            background: var(--surface);
-            border-top: 1px solid #334155;
-            border-bottom: 1px solid #334155;
-        }
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-        footer {
-            border-top: 1px solid #1e293b;
-            color: #64748b;
-        }
-        .nis2-banner {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: #1e293b;
-            padding: 12px 0;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-        .nis2-banner i {
-            color: #dc2626;
-        }
-        .price-comparison {
-            background: var(--surface);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .price-comparison.strikethrough .old-price {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #64748b;
-            text-decoration: line-through;
-        }
-        .price-comparison.strikethrough .old-label {
-            color: #94a3b8;
-        }
-        .price-comparison.highlighted {
-            border-color: var(--primary);
-            background: linear-gradient(135deg, var(--surface), #1e1b4b);
-        }
-        .price-comparison.highlighted .new-price {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-        .price-comparison.highlighted .new-label {
-            color: #a5b4fc;
-        }
-        .testimonial-card {
-            background: var(--surface);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 2rem;
-            position: relative;
-        }
-        .testimonial-card::before {
-            content: '\201C';
-            font-size: 4rem;
-            color: var(--primary);
-            opacity: 0.3;
-            position: absolute;
-            top: 0.5rem;
-            left: 1rem;
-            line-height: 1;
-        }
-        .testimonial-card .quote {
-            font-style: italic;
-            color: #cbd5e1;
-            margin-top: 1rem;
-            position: relative;
-            z-index: 1;
-        }
-        .testimonial-card .author {
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-top: 1rem;
-        }
-        .testimonial-card .role {
-            color: #94a3b8;
-            font-size: 0.85rem;
-        }
-        .calendly-cta {
-            background: linear-gradient(135deg, #1e1b4b, var(--surface));
-            border: 1px solid var(--primary);
-            border-radius: 24px;
-            padding: 3rem;
-        }
-        .savings-badge {
-            background: rgba(99,102,241,0.15);
-            border: 1px solid var(--primary);
-            border-radius: 50px;
-            padding: 8px 24px;
-            display: inline-block;
-            color: #a5b4fc;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2rem; }
-            .hero { padding: 100px 0 60px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CodeAudit Pro — Auditoría NIS2 · Seguridad de Código</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#070d1a;color:#f8fafc;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+.navbar{background:rgba(7,13,26,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.hero-section{padding:140px 0 80px;background:linear-gradient(135deg,#070d1a 0%,#0a1428 40%,#1a1040 100%);position:relative;overflow:hidden}
+.hero-section::before{content:'';position:absolute;top:-20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(245,158,11,0.08),transparent 70%);pointer-events:none}
+.hero-section::after{content:'';position:absolute;bottom:-30%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(99,102,241,0.08),transparent 70%);pointer-events:none}
+.hero-section h1{font-size:2.8rem;font-weight:800;line-height:1.15;background:linear-gradient(135deg,#f8fafc,#c7d2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{color:#94a3b8;font-size:1.15rem;max-width:600px}
+.hero-stats{display:flex;gap:32px;margin-top:24px;flex-wrap:wrap}
+.hero-stat{font-size:0.82rem;color:#64748b;display:flex;align-items:center;gap:8px}
+.hero-stat i{color:#f59e0b;font-size:0.9rem}
+.section-title{font-weight:700;margin-bottom:3rem;color:#e2e8f0;text-align:center}
+.section-title span{background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.card-surface{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;transition:all 0.3s}
+.card-surface:hover{border-color:rgba(245,158,11,0.2)}
+.calculator-section{background:#0a1428;border-top:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04)}
+.form-control,.form-select{background:#070d1a;border:1px solid rgba(255,255,255,0.1);color:#f8fafc;border-radius:10px;padding:12px 14px;font-size:0.9rem}
+.form-control:focus,.form-select:focus{background:#070d1a;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.12);color:#f8fafc}
+.form-control::placeholder{color:#475569}
+.form-label{font-size:0.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.btn-primary-custom{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:14px 36px;font-weight:700;font-size:0.95rem;color:#070d1a;transition:all 0.2s;text-decoration:none;display:inline-block}
+.btn-primary-custom:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.3);color:#070d1a}
+.btn-outline-custom{border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:14px 36px;font-weight:600;font-size:0.9rem;color:#e2e8f0;text-decoration:none;transition:all 0.2s;background:transparent;display:inline-block}
+.btn-outline-custom:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.25);color:#f8fafc}
+.result-card{background:linear-gradient(135deg,#0f1529,#0a1428);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:1.5rem;margin-top:1rem}
+.result-card .big-number{font-size:2.5rem;font-weight:800}
+.result-card .big-number.red{color:#ef4444}
+.result-card .big-number.green{color:#10b981}
+.result-card .big-number.gold{color:#f59e0b}
+.compare-table{width:100%;border-collapse:separate;border-spacing:0}
+.compare-table th,.compare-table td{padding:14px 20px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04)}
+.compare-table th{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;background:rgba(255,255,255,0.02);font-weight:700}
+.compare-table td{font-size:0.88rem;color:#cbd5e1}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table .highlight{color:#f59e0b;font-weight:600}
+.compare-table .check{color:#10b981}
+.compare-table .cross{color:#ef4444}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem}
+.pricing-card{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem 1.5rem;text-align:center;transition:all 0.3s;position:relative}
+.pricing-card:hover{border-color:rgba(245,158,11,0.2);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.pricing-card.featured{border-color:#f59e0b;border-width:2px;background:linear-gradient(135deg,#0f1529,#1a1040)}
+.pricing-card.featured::before{content:'RECOMENDADO';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;padding:4px 16px;border-radius:20px;font-size:0.65rem;font-weight:800;letter-spacing:1px}
+.pricing-card .price{font-size:2.5rem;font-weight:800;color:#f8fafc;margin:0.5rem 0}
+.pricing-card .price small{font-size:0.9rem;color:#64748b;font-weight:400}
+.pricing-card .features{list-style:none;padding:0;margin:1rem 0;color:#94a3b8;text-align:left}
+.pricing-card .features li{padding:7px 0;font-size:0.82rem;display:flex;align-items:center;gap:8px}
+.pricing-card .features li i{color:#10b981}
+.pricing-card .btn-pricing{display:block;padding:12px;border-radius:10px;font-weight:600;font-size:0.88rem;text-decoration:none;transition:all 0.2s;margin-top:1.5rem}
+.pricing-card .btn-pricing.primary{background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a}
+.pricing-card .btn-pricing.primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(245,158,11,0.25)}
+.pricing-card .btn-pricing.secondary{background:rgba(255,255,255,0.06);color:#e2e8f0}
+.pricing-card .btn-pricing.secondary:hover{background:rgba(255,255,255,0.1)}
+.pricing-card .btn-pricing.outline{border:1px solid rgba(255,255,255,0.15);color:#94a3b8}
+.pricing-card .btn-pricing.outline:hover{background:rgba(255,255,255,0.05)}
+footer{border-top:1px solid rgba(255,255,255,0.06);color:#475569}
+.progress-area{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;margin-top:1.5rem;display:none}
+.progress-bar-track{background:rgba(255,255,255,0.06);border-radius:100px;height:8px;overflow:hidden;margin:1rem 0}
+.progress-bar-fill{height:8px;border-radius:100px;background:linear-gradient(90deg,#f59e0b,#10b981);width:0%;transition:width 0.4s cubic-bezier(0.34,1.56,0.64,1)}
+.demo-steps{display:flex;gap:12px;justify-content:center;margin:1rem 0;flex-wrap:wrap}
+.demo-step{font-size:0.78rem;color:#475569;display:flex;align-items:center;gap:6px}
+.demo-step.done{color:#10b981}
+.demo-step.active{color:#f59e0b}
+.error-msg{color:#ef4444;font-size:0.82rem;margin-top:6px;display:none}
+.paywall-result{background:linear-gradient(135deg,#0f1529,rgba(15,23,42,0.95));border:2px solid rgba(245,158,11,0.25);border-radius:20px;padding:2.5rem 2rem;text-align:center;position:relative;overflow:hidden;margin-top:1.5rem}
+.paywall-result::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(245,158,11,0.03),transparent 50%);pointer-events:none}
+.paywall-result .lock-icon{font-size:2.5rem;margin-bottom:0.75rem}
+.paywall-result h4{color:#f1f5f9;font-weight:700;margin-bottom:0.5rem}
+.paywall-result p{color:#64748b;font-size:0.88rem;max-width:450px;margin:0 auto 1.25rem}
+@media(max-width:768px){.hero-section h1{font-size:1.8rem}.hero-section{padding:100px 0 60px}.hero-stats{gap:16px}.pricing-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="bi bi-shield-check text-primary me-2"></i>CodeAudit Pro
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navmenu">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#problema">Problema</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#beneficios">Beneficios</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#precios">Precios</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/try-now" style="color:#10b981;font-weight:600;">Demo Gratis</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <div class="nis2-banner">
-        <div class="container">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            NIS2 entró en vigor en octubre 2024 · DORA en enero 2025. Si tienes >50 empleados o >10M€ facturación, ya aplica a tu empresa.
-        </div>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/">
+      <i class="bi bi-shield-check text-warning me-2"></i>CodeAudit Pro
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navmenu">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item"><a class="nav-link" href="#calculadora">Calculadora</a></li>
+        <li class="nav-item"><a class="nav-link" href="#demo-section">Demo</a></li>
+        <li class="nav-item"><a class="nav-link" href="#comparativa">Comparativa</a></li>
+        <li class="nav-item"><a class="nav-link" href="#precios">Precios</a></li>
+        <li class="nav-item ms-lg-2">
+          <a class="btn btn-sm btn-primary-custom px-3 py-2" href="#demo-section">
+            <i class="bi bi-play-fill me-1"></i>Demo gratis
+          </a>
+        </li>
+      </ul>
     </div>
+  </div>
+</nav>
 
-    <section class="hero">
-        <div class="container position-relative">
-            <div class="row align-items-center">
-                <div class="col-lg-7">
-                    <h1>Tu código puede estar <br>enfermo sin que lo sepas</h1>
-                    <p class="subtitle mt-3">
-                        Deuda técnica y vulnerabilidades de seguridad cuestan a las PYMES 
-                        <strong>miles de euros al año</strong>. Nosotros lo diagnosticamos en 24h.
-                    </p>
-                    <div class="mt-4">
-                        <a href="#precios" class="btn btn-primary btn-lg me-3">
-                            <i class="bi bi-cart-check me-2"></i>Ver Planes
-                        </a>
-                        <a href="#contacto" class="btn btn-outline-light btn-lg">
-                            <i class="bi bi-file-earmark-text me-2"></i>Informe Gratuito
-                        </a>
-                    </div>
-                    <div class="mt-4 text-muted small">
-                        <i class="bi bi-check-circle-fill text-success me-1"></i> Sin instalación 
-                        <i class="bi bi-check-circle-fill text-success ms-3 me-1"></i> Resultados en 24h
-                        <i class="bi bi-check-circle-fill text-success ms-3 me-1"></i> SSL/TLS cifrado
-                    </div>
-                </div>
-                <div class="col-lg-5 d-none d-lg-block text-end">
-                    <i class="bi bi-shield-fill-check" style="font-size: 12rem; color: rgba(99,102,241,0.1);"></i>
-                </div>
-            </div>
+<section class="hero-section" id="hero">
+  <div class="container position-relative">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h1>Tu empresa ya está en infracción NIS2.<br>Cada día sin auditoría es un día de exposición.</h1>
+        <p class="hero-sub mt-4">Auditoría de seguridad certificada en 5 minutos. Válida ante reguladores europeos. Desde 299 €.</p>
+        <div class="d-flex gap-3 mt-4 flex-wrap">
+          <a href="#demo-section" class="btn-primary-custom">
+            <i class="bi bi-play-fill me-1"></i>Analizar mi repo gratis →
+          </a>
+          <a href="/reports/demo-sample.html" target="_blank" class="btn-outline-custom">
+            <i class="bi bi-file-earmark-text me-1"></i>Ver ejemplo de informe
+          </a>
         </div>
-    </section>
-
-    <section class="py-5 stats-section">
-        <div class="container">
-            <div class="row text-center">
-                <div class="col-6 col-lg-3 mb-3">
-                    <div class="stat-number">89%</div>
-                    <div class="text-muted">de PYMES tiene deuda técnica</div>
-                </div>
-                <div class="col-6 col-lg-3 mb-3">
-                    <div class="stat-number">4.2M€</div>
-                    <div class="text-muted">coste medio anual por brecha de seguridad</div>
-                </div>
-                <div class="col-6 col-lg-3 mb-3">
-                    <div class="stat-number">24h</div>
-                    <div class="text-muted">entrega de informe ejecutivo</div>
-                </div>
-                <div class="col-6 col-lg-3 mb-3">
-                    <div class="stat-number">-40%</div>
-                    <div class="text-muted">reducción de riesgos con auditoría regular</div>
-                </div>
-            </div>
+        <div class="hero-stats">
+          <span class="hero-stat"><i class="bi bi-exclamation-triangle-fill"></i> NIS2 en vigor desde Oct 2024</span>
+          <span class="hero-stat"><i class="bi bi-cash-stack"></i> Multas hasta 10.000.000 €</span>
+          <span class="hero-stat"><i class="bi bi-clock-history"></i> 5 min vs 3 meses de consultoría</span>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <section class="py-5" id="problema">
-        <div class="container">
-            <h2 class="section-title text-center">¿Por qué tu PYME necesita esto?</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card-feature h-100">
-                        <i class="bi bi-exclamation-triangle icon"></i>
-                        <h5 class="mt-3">Deuda Técnica Oculta</h5>
-                        <p class="text-muted">Código mal escrito, falta de testing y arquitectura frágil ralentizan tu equipo. Cada línea de deuda es un coste futuro.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card-feature h-100">
-                        <i class="bi bi-lock icon"></i>
-                        <h5 class="mt-3">Vulnerabilidades Críticas</h5>
-                        <p class="text-muted">APIs keys hardcodeadas, dependencias obsoletas, XSS, SQL injection. El 60% de las brechas afectan a PYMES.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card-feature h-100">
-                        <i class="bi bi-graph-up icon"></i>
-                        <h5 class="mt-3">ROI Directo</h5>
-                        <p class="text-muted">Cada euro invertido en auditoría previene pérdidas de 10-30€ en incidentes, multas y retrabajo.</p>
-                    </div>
-                </div>
+<section class="calculator-section py-5" id="calculadora">
+  <div class="container">
+    <h2 class="section-title">Calcula tu <span>exposición a multas</span> en 30 segundos</h2>
+    <div class="row g-4 justify-content-center">
+      <div class="col-lg-7">
+        <div class="card-surface">
+          <form id="calcForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Tamaño empresa</label>
+                <select class="form-select" id="calcSize">
+                  <option value="micro">Micro (1-9)</option>
+                  <option value="small">Pequeña (10-49)</option>
+                  <option value="medium">Mediana (50-249)</option>
+                  <option value="large">Grande (250+)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Sector</label>
+                <select class="form-select" id="calcSector">
+                  <option value="tech">Tecnología</option>
+                  <option value="finance">Banca/Fintech</option>
+                  <option value="health">Salud</option>
+                  <option value="energy">Energía</option>
+                  <option value="logistics">Logística</option>
+                  <option value="retail">Retail</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Facturación</label>
+                <select class="form-select" id="calcRevenue">
+                  <option value="low">&lt;2M€</option>
+                  <option value="mid">2-10M€</option>
+                  <option value="high">10-50M€</option>
+                  <option value="veryhigh">&gt;50M€</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Cumplimiento actual</label>
+                <select class="form-select" id="calcCompliance">
+                  <option value="none">Sin medidas</option>
+                  <option value="partial">Parcial</option>
+                  <option value="most">Mayoritario</option>
+                  <option value="full">Completo</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Email <span style="color:#ef4444">*</span></label>
+                <input type="email" class="form-control" id="calcEmail" placeholder="tu@empresa.com" required>
+              </div>
             </div>
-        </div>
-    </section>
-
-    <section class="py-5" id="beneficios">
-        <div class="container">
-            <h2 class="section-title text-center">Cómo funciona</h2>
-            <div class="row g-4 justify-content-center">
-                <div class="col-md-4">
-                    <div class="step-card h-100">
-                        <div class="step-number">1</div>
-                        <h5>Danos tu repositorio</h5>
-                        <p class="text-muted">Compartes la URL de tu código (GitHub, GitLab, Bitbucket). Nosotros lo clonamos de forma segura.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="step-card h-100">
-                        <div class="step-number">2</div>
-                        <h5>Analizamos en 24h</h5>
-                        <p class="text-muted">Nuestro motor escanea secretos, vulnerabilidades, complejidad ciclomática y duplicación de código.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="step-card h-100">
-                        <div class="step-number">3</div>
-                        <h5>Recibes tu informe</h5>
-                        <p class="text-muted">Informe ejecutivo HTML con hallazgos, métricas y recomendaciones priorizadas.</p>
-                    </div>
-                </div>
+          </form>
+          <div id="calcResults" class="result-card">
+            <div class="row g-3 text-center">
+              <div class="col-4">
+                <div class="big-number red" id="calcMaxFine">0 €</div>
+                <div class="text-muted" style="font-size:0.72rem">Multa máxima NIS2</div>
+              </div>
+              <div class="col-4">
+                <div class="big-number gold" id="calcExposure">0 €</div>
+                <div class="text-muted" style="font-size:0.72rem">Exposición calculada</div>
+              </div>
+              <div class="col-4">
+                <div class="big-number green" id="calcSavings">0 €</div>
+                <div class="text-muted" style="font-size:0.72rem">Ahorro vs consultoría</div>
+              </div>
             </div>
-        </div>
-    </section>
-
-    <section class="py-5" id="testimonios">
-        <div class="container">
-            <h2 class="section-title text-center">Lo que dicen nuestros clientes</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="testimonial-card h-100">
-                        <p class="quote">Encontraron 12 vulnerabilidades críticas que nuestro equipo había pasado por alto. El informe NIS2 nos salvó de una sanción.</p>
-                        <div class="author">Carlos Mendoza</div>
-                        <div class="role">CTO de InnovaDev</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="testimonial-card h-100">
-                        <p class="quote">Pasamos de 0 a cumplir NIS2 en 48 horas. La mejor inversión del año.</p>
-                        <div class="author">Laura García</div>
-                        <div class="role">CEO de CodeCraft Solutions</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="testimonial-card h-100">
-                        <p class="quote">El dashboard white-label nos permite mostrar cumplimiento a nuestros clientes. Es nuestra arma de ventas.</p>
-                        <div class="author">Miguel Ángel Ruiz</div>
-                        <div class="role">Director IT en TechForge</div>
-                    </div>
-                </div>
+            <div id="calcSubmitArea" class="text-center mt-3" style="display:none">
+              <button class="btn-primary-custom" id="calcSubmitBtn">
+                <i class="bi bi-send me-1"></i>Ver mi plan de remediación → 1.500 €
+              </button>
             </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <section class="py-5">
-        <div class="container">
-            <h2 class="section-title text-center">¿Cuánto cuesta no auditarte?</h2>
-            <div class="row g-4 justify-content-center align-items-stretch">
-                <div class="col-md-5">
-                    <div class="price-comparison strikethrough h-100">
-                        <p class="old-label mb-1">Auditoría manual tradicional</p>
-                        <div class="old-price">15.000 €</div>
-                        <p class="text-muted mt-2">y 3 semanas de espera</p>
-                    </div>
-                </div>
-                <div class="col-md-5">
-                    <div class="price-comparison highlighted h-100">
-                        <p class="new-label mb-1">CodeAudit Pro</p>
-                        <div class="new-price">299 €</div>
-                        <p class="text-muted mt-2">resultados en 24h</p>
-                    </div>
-                </div>
+<section class="py-5" id="demo-section">
+  <div class="container">
+    <h2 class="section-title">Analiza tu repositorio <span>ahora</span> — gratis, sin registro</h2>
+    <div class="row justify-content-center">
+      <div class="col-lg-6">
+        <div class="card-surface" id="demoFormContainer">
+          <form id="demoForm">
+            <div class="mb-3">
+              <label class="form-label">URL del repositorio (GitHub o GitLab público)</label>
+              <input type="url" class="form-control" id="demoRepoUrl" placeholder="https://github.com/usuario/repositorio" required>
+              <div class="error-msg" id="demoUrlError">Solo repos públicos de GitHub o GitLab</div>
             </div>
-            <div class="text-center mt-4">
-                <span class="savings-badge">
-                    <i class="bi bi-graph-down-arrow me-1"></i>Nuestros clientes ahorran hasta un 98% vs. consultoría tradicional
-                </span>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="demoEmail" placeholder="tu@empresa.com" required>
             </div>
+            <button type="submit" class="btn-primary-custom w-100" id="demoSubmitBtn">
+              <i class="bi bi-play-fill me-1"></i>Iniciar análisis →
+            </button>
+          </form>
         </div>
-    </section>
 
-    <section class="py-5" id="precios">
-        <div class="container">
-            <h2 class="section-title text-center">Planes transparentes</h2>
-            <div class="row g-4 justify-content-center">
-                <div class="col-lg-4">
-                    <div class="pricing-card h-100">
-                        <h5>Informe Gratuito</h5>
-                        <div class="price mb-2">
-                            <small>€</small>0
-                        </div>
-                        <p class="text-muted">Muestra de lo que podemos hacer por ti</p>
-                        <ul class="features">
-                            <li><i class="bi bi-check"></i> Escaneo básico de secretos</li>
-                            <li><i class="bi bi-check"></i> 1 repositorio público</li>
-                            <li><i class="bi bi-check"></i> Resumen ejecutivo</li>
-                            <li><i class="bi bi-x text-danger"></i> Dependencias vulnerables</li>
-                            <li><i class="bi bi-x text-danger"></i> Deuda técnica detallada</li>
-                            <li><i class="bi bi-x text-danger"></i> Recomendaciones personalizadas</li>
-                        </ul>
-                        <a href="#contacto" class="btn btn-outline-light w-100 mt-3">Solicitar Muestra</a>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="pricing-card popular h-100">
-                        <h5>Auditoría Única</h5>
-                        <div class="price mb-2">
-                            <small>€</small>299
-                        </div>
-                        <p class="text-muted">Análisis completo de tu repositorio</p>
-                        <ul class="features">
-                            <li><i class="bi bi-check"></i> Escaneo completo de secretos</li>
-                            <li><i class="bi bi-check"></i> Análisis de dependencias</li>
-                            <li><i class="bi bi-check"></i> Medición de deuda técnica</li>
-                            <li><i class="bi bi-check"></i> Informe HTML premium</li>
-                            <li><i class="bi bi-check"></i> Recomendaciones priorizadas</li>
-                            <li><i class="bi bi-check"></i> 1 repositorio</li>
-                        </ul>
-                        <button class="btn btn-primary w-100 mt-3 stripe-checkout" data-price-id="auditoria_unica">
-                            <i class="bi bi-credit-card me-2"></i>Pagar 299 €
-                        </button>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="pricing-card h-100">
-                        <h5>Suscripción Mensual</h5>
-                        <div class="price mb-2">
-                            <small>€</small>199 <small>/mes</small>
-                        </div>
-                        <p class="text-muted">Hasta 4 auditorías al mes</p>
-                        <ul class="features">
-                            <li><i class="bi bi-check"></i> Todo el plan único</li>
-                            <li><i class="bi bi-check"></i> Hasta 4 repos/mes</li>
-                            <li><i class="bi bi-check"></i> Dashboard de evolución</li>
-                            <li><i class="bi bi-check"></i> Alertas de nuevas vulns</li>
-                            <li><i class="bi bi-check"></i> Soporte prioritario</li>
-                            <li><i class="bi bi-check"></i> Cancelación sin penalización</li>
-                        </ul>
-                        <button class="btn btn-primary w-100 mt-3 stripe-checkout" data-price-id="suscripcion_mensual">
-                            <i class="bi bi-credit-card me-2"></i>Pagar 199 €/mes
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <div class="progress-area" id="demoProgressArea">
+          <div style="text-align:center">
+            <div style="font-size:2rem;margin-bottom:0.5rem" id="progressIcon">🔍</div>
+            <h5 id="progressTitle" style="color:#f1f5f9;font-weight:600">Escaneando repositorio...</h5>
+            <p class="text-muted" style="font-size:0.82rem" id="progressRepoUrl"></p>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <p style="font-size:0.82rem;color:#64748b;text-align:center" id="progressPct">0%</p>
+          <div class="demo-steps" id="demoSteps">
+            <span class="demo-step" data-step="clone"><span class="step-icon">⏳</span> Clonando</span>
+            <span class="demo-step" data-step="secrets"><span class="step-icon">⏳</span> Escaneando deps</span>
+            <span class="demo-step" data-step="code"><span class="step-icon">⏳</span> Analizando código</span>
+            <span class="demo-step" data-step="secrets2"><span class="step-icon">⏳</span> Buscando secretos</span>
+            <span class="demo-step" data-step="report"><span class="step-icon">⏳</span> Generando informe</span>
+          </div>
+          <div id="demoCompleteArea" style="display:none;text-align:center;margin-top:1rem">
+            <div style="font-size:3rem;margin-bottom:0.5rem">✅</div>
+            <h5 style="color:#10b981;font-weight:600">¡Auditoría completada!</h5>
+            <p class="text-muted" id="progressSummary"></p>
+            <a id="progressResultLink" class="btn-primary-custom mt-2">
+              <i class="bi bi-eye me-1"></i>Ver resultados →
+            </a>
+          </div>
         </div>
-    </section>
 
-    <section class="py-5">
-        <div class="container">
-            <h2 class="section-title text-center">🏢 Planes Enterprise (Cumplimiento Normativo)</h2>
-            <div class="row g-4 justify-content-center mt-3">
-                <div class="col-lg-6">
-                    <div class="pricing-card popular h-100">
-                        <h5>Compliance Pro</h5>
-                        <div class="price mb-2"><small>€</small>1.500</div>
-                        <p class="text-muted">Una auditoría con cumplimiento normativo</p>
-                        <ul class="features">
-                            <li><i class="bi bi-check"></i> Informe técnico completo (Pro)</li>
-                            <li><i class="bi bi-check"></i> Informe NIS2 + DORA</li>
-                            <li><i class="bi bi-check"></i> Certificación blockchain (hash + QR)</li>
-                            <li><i class="bi bi-check"></i> Declaración de debida diligencia</li>
-                            <li><i class="bi bi-check"></i> Válido para auditores externos</li>
-                            <li><i class="bi bi-check"></i> Soporte por email prioritario</li>
-                        </ul>
-                        <button class="btn btn-primary w-100 mt-3 stripe-checkout" data-price-id="compliance_pro">
-                            <i class="bi bi-credit-card me-2"></i>Seleccionar Compliance Pro
-                        </button>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="pricing-card h-100">
-                        <h5>Enterprise</h5>
-                        <div class="price mb-2"><small>€</small>10.000 <small>/año</small></div>
-                        <p class="text-muted">Solución completa para toda la organización</p>
-                        <ul class="features">
-                            <li><i class="bi bi-check"></i> Todo Compliance Pro</li>
-                            <li><i class="bi bi-check"></i> Dashboard multi-equipo</li>
-                            <li><i class="bi bi-check"></i> Integración con Jira</li>
-                            <li><i class="bi bi-check"></i> Monitoreo continuo automático</li>
-                            <li><i class="bi bi-check"></i> Alertas de seguridad en tiempo real</li>
-                            <li><i class="bi bi-check"></i> SLA 4h, onboarding dedicado</li>
-                        </ul>
-                        <a href="#contacto" class="btn btn-outline-light w-100 mt-3">Contactar Ventas</a>
-                    </div>
-                </div>
-            </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5" id="comparativa">
+  <div class="container">
+    <h2 class="section-title">¿Por qué <span>CodeAudit Pro</span>?</h2>
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="card-surface p-0" style="overflow:hidden">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Característica</th>
+                <th>Consultoría tradicional</th>
+                <th>CodeAudit Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Precio</td><td>15.000–80.000 €</td><td class="highlight">Desde 299 €</td></tr>
+              <tr><td>Tiempo</td><td>8–12 semanas</td><td class="highlight">5 minutos</td></tr>
+              <tr><td>NIS2/DORA nativo</td><td class="cross">✗ Básico</td><td class="check">✓ Completo</td></tr>
+              <tr><td>Certificación</td><td class="cross">✗ No</td><td class="check">✓ SHA-256 + QR</td></tr>
+              <tr><td>PDF para auditores</td><td>✓ (caro)</td><td class="check">✓ Incluido</td></tr>
+              <tr><td>Monitorización</td><td class="cross">✗ No</td><td class="check">✓ Continua</td></tr>
+              <tr><td>Precio enterprise</td><td>200.000 €/año</td><td class="highlight">29.900 €/año</td></tr>
+            </tbody>
+          </table>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <section class="py-5">
-        <div class="container">
-            <div class="calendly-cta text-center">
-                <h2 class="mb-3">¿Hablamos?</h2>
-                <p class="text-muted mb-4" style="font-size: 1.1rem;">Reserva una llamada de 20 minutos con nuestro equipo</p>
-                <a href="#" class="btn btn-primary btn-lg">
-                    Agendar llamada <i class="bi bi-arrow-right ms-2"></i>
-                </a>
-                <p class="mt-3 text-muted small">Sin compromiso. Te explicamos cómo cumplir NIS2/DORA en 24h.</p>
-            </div>
-        </div>
-    </section>
+<section class="py-5" id="precios">
+  <div class="container">
+    <h2 class="section-title">Planes <span>transparentes</span></h2>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h5 style="color:#e2e8f0;font-weight:600">GRATIS</h5>
+        <div class="price">0 <small>€</small></div>
+        <ul class="features">
+          <li><i class="bi bi-check"></i> Escaneo básico</li>
+          <li><i class="bi bi-check"></i> 1 repo público</li>
+          <li><i class="bi bi-check"></i> Resumen ejecutivo</li>
+        </ul>
+        <a href="#demo-section" class="btn-pricing outline">Empezar gratis →</a>
+      </div>
 
-    <section class="py-5" id="contacto">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <h2 class="section-title text-center">Solicita tu informe gratuito</h2>
-                    <p class="text-center text-muted mb-4">Cuéntanos sobre tu proyecto y te enviaremos una muestra gratuita.</p>
-                    <div class="card-feature">
-                        <form id="contactForm">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre completo</label>
-                                    <input type="text" name="nombre" class="form-control" placeholder="Tu nombre" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Empresa</label>
-                                    <input type="text" name="empresa" class="form-control" placeholder="Tu empresa" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" name="email" class="form-control" placeholder="email@empresa.com" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">URL del repositorio</label>
-                                    <input type="url" name="repo_url" class="form-control" placeholder="https://github.com/tu-empresa/repo">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Mensaje</label>
-                                    <textarea name="mensaje" class="form-control" rows="3" placeholder="Cuéntanos qué necesitas..."></textarea>
-                                </div>
-                                <div class="col-12 text-center">
-                                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                                        <i class="bi bi-send me-2"></i>Solicitar Informe Gratuito
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="text-center mt-4">
-                        <p class="text-muted">
-                            <i class="bi bi-telephone me-2 text-primary"></i>
-                            ¿Prefieres hablar? Llámanos al <strong>+34 900 123 456</strong>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+      <div class="pricing-card">
+        <h5 style="color:#e2e8f0;font-weight:600">PRO</h5>
+        <div class="price">299 <small>€</small></div>
+        <ul class="features">
+          <li><i class="bi bi-check"></i> Informe completo</li>
+          <li><i class="bi bi-check"></i> Dashboard 30 días</li>
+          <li><i class="bi bi-check"></i> Email con PDF</li>
+        </ul>
+        <a href="/create-checkout?plan=auditoria_unica" class="btn-pricing outline">Contratar →</a>
+      </div>
 
-    <footer class="py-4">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2026 CodeAudit Pro. Auditoría de seguridad y calidad de código para PYMES.</p>
-            <p class="mt-2 small">
-                <a href="/security" class="text-muted me-3">Seguridad</a>
-                <a href="/terms" class="text-muted me-3">Términos y Condiciones</a>
-                <a href="/privacy" class="text-muted me-3">Privacidad</a>
-                <a href="/partners" class="text-muted">Partners</a>
-            </p>
-        </div>
-    </footer>
+      <div class="pricing-card featured">
+        <h5 style="color:#e2e8f0;font-weight:600">COMPLIANCE PRO</h5>
+        <div class="price">1.500 <small>€</small></div>
+        <ul class="features">
+          <li><i class="bi bi-check"></i> NIS2/DORA completo</li>
+          <li><i class="bi bi-check"></i> PDF para auditores</li>
+          <li><i class="bi bi-check"></i> Certificación SHA-256</li>
+          <li><i class="bi bi-check"></i> Válido ante reguladores</li>
+        </ul>
+        <a href="/create-checkout?plan=compliance_pro" class="btn-pricing primary">Contratar →</a>
+      </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.__API_BASE__ = window.location.origin.replace(':3000','').replace(':5173','') || 'http://localhost:5001';
-        window.__PAYMENT_API__ = window.location.origin.replace(':3000','').replace(':5173','') || 'http://localhost:5002';
-    </script>
-    <script>
-        document.querySelectorAll('.stripe-checkout').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const priceId = this.dataset.priceId;
-                const email = prompt('Email para recibir el informe:');
-                if (!email) return;
-                const repo = prompt('URL del repositorio a auditar:');
-                if (!repo) return;
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Redirigiendo...';
-                try {
-                    const resp = await fetch(window.__PAYMENT_API__ + '/create-checkout-session', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({price_id: priceId, repo_url: repo, customer_email: email}),
-                    });
-                    const data = await resp.json();
-                    if (data.url) window.location.href = data.url;
-                    else alert('Error: ' + (data.error || 'desconocido'));
-                } catch (err) {
-                    alert('No se pudo conectar con el servidor de pagos. Asegúrate de que el servicio de pagos esté funcionando.');
-                }
-                this.disabled = false;
-                this.innerHTML = '<i class="bi bi-credit-card me-2"></i>' + (priceId.includes('suscripcion') ? 'Pagar 199 €/mes' : 'Pagar 299 €');
-            });
-        });
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const btn = form.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+      <div class="pricing-card">
+        <h5 style="color:#e2e8f0;font-weight:600">ENTERPRISE</h5>
+        <div class="price">29.900 <small>€/año</small></div>
+        <ul class="features">
+          <li><i class="bi bi-check"></i> Hasta 50 repos</li>
+          <li><i class="bi bi-check"></i> White-label</li>
+          <li><i class="bi bi-check"></i> SIEM + Jira</li>
+          <li><i class="bi bi-check"></i> Soporte 24/7</li>
+        </ul>
+        <a href="mailto:ventas@codeauditpro.com" class="btn-pricing secondary">Hablar con ventas →</a>
+      </div>
+    </div>
+  </div>
+</section>
 
-            const data = {
-                nombre: form.nombre.value,
-                empresa: form.empresa.value,
-                email: form.email.value,
-                repo_url: form.repo_url.value,
-                mensaje: form.mensaje.value,
-            };
+<section class="py-4">
+  <div class="container text-center">
+    <p class="text-muted" style="font-size:0.9rem">
+      <i class="bi bi-question-circle me-1"></i>¿Tienes preguntas?
+      <a href="mailto:ventas@codeauditpro.com" style="color:#f59e0b;text-decoration:none;font-weight:600">ventas@codeauditpro.com</a>
+      o <a href="https://calendly.com" target="_blank" style="color:#f59e0b;text-decoration:none;font-weight:600">Agendar llamada de 20 min →</a>
+    </p>
+  </div>
+</section>
 
-            try {
-                const resp = await fetch(window.__API_BASE__ + '/submit-lead', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data),
-                });
-                const result = await resp.json();
-                if (result.ok) {
-                    form.innerHTML = '<div class="text-center py-5"><i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i><h4 class="mt-3 text-light">' + result.message + '</h4></div>';
-                } else {
-                    alert('Error: ' + result.message);
-                }
-            } catch (err) {
-                alert('No se pudo conectar con el servidor. Asegúrate de que el servicio de leads esté funcionando.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-send me-2"></i>Solicitar Informe Gratuito';
-            }
-        });
-    </script>
+<footer class="py-4">
+  <div class="container text-center">
+    <p class="mb-2">
+      <a href="/security" class="text-muted me-3" style="text-decoration:none">Seguridad</a>
+      <a href="/terms" class="text-muted me-3" style="text-decoration:none">Términos</a>
+      <a href="/privacy" class="text-muted" style="text-decoration:none">Privacidad</a>
+    </p>
+    <p class="mb-0" style="font-size:0.82rem">MIT © 2026 CodeAudit Pro — Madrid, España</p>
+    <p style="font-size:0.75rem;margin-top:4px">NIF: [pendiente] — Operamos bajo legislación española y europea</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const FINES = {micro:500000, small:2000000, medium:7000000, large:10000000};
+const SECTOR_FACTOR = {tech:1.0, finance:1.5, health:1.2, energy:1.3, logistics:1.0, retail:0.8, other:0.9};
+const COMPLIANCE_PROB = {none:0.60, partial:0.35, most:0.15, full:0.05};
+const TRAD_COST = {micro:12000, small:25000, medium:40000, large:80000};
+const CAP_COST = {micro:299, small:1500, medium:1500, large:29900};
+
+function formatEur(n) {
+  return n.toLocaleString('es-ES', {style:'currency',currency:'EUR',maximumFractionDigits:0});
+}
+
+function updateCalculator() {
+  const size = document.getElementById('calcSize').value;
+  const sector = document.getElementById('calcSector').value;
+  const compliance = document.getElementById('calcCompliance').value;
+  const maxFine = FINES[size] * SECTOR_FACTOR[sector];
+  const exposure = maxFine * COMPLIANCE_PROB[compliance];
+  const savings = TRAD_COST[size] - CAP_COST[size];
+  document.getElementById('calcMaxFine').textContent = formatEur(maxFine);
+  document.getElementById('calcExposure').textContent = formatEur(exposure);
+  document.getElementById('calcSavings').textContent = formatEur(savings) + (savings > 0 ? ' ' : '');
+}
+
+document.querySelectorAll('#calcSize, #calcSector, #calcCompliance').forEach(el => {
+  el.addEventListener('change', updateCalculator);
+});
+updateCalculator();
+
+document.getElementById('calcForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('calcEmail').value;
+  if (!email) return;
+  const size = document.getElementById('calcSize').value;
+  const sector = document.getElementById('calcSector').value;
+  const revenue = document.getElementById('calcRevenue').value;
+  const compliance = document.getElementById('calcCompliance').value;
+  try {
+    await fetch('/submit-lead', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, sector, size, revenue, compliance_level: compliance, source: 'calculator'})
+    });
+  } catch(e) {}
+  document.getElementById('calcSubmitArea').style.display = 'block';
+  document.getElementById('calcSubmitBtn').onclick = function() {
+    document.getElementById('demoEmail').value = email;
+    document.getElementById('demo-section').scrollIntoView({behavior:'smooth'});
+  };
+});
+
+let currentDemoId = null;
+
+document.getElementById('demoForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const repoUrl = document.getElementById('demoRepoUrl').value.trim();
+  const email = document.getElementById('demoEmail').value.trim();
+  const urlError = document.getElementById('demoUrlError');
+  if (!repoUrl.match(/^https?:\/\/(www\.)?(github\.com|gitlab\.com)\//i)) {
+    urlError.style.display = 'block';
+    return;
+  }
+  urlError.style.display = 'none';
+  const submitBtn = document.getElementById('demoSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Iniciando...';
+  try {
+    const resp = await fetch('/demo/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({repo_url: repoUrl, email: email})
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.error || 'Error al iniciar el análisis');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Iniciar análisis →';
+      return;
+    }
+    const data = await resp.json();
+    currentDemoId = data.demo_id;
+    document.getElementById('demoFormContainer').style.display = 'none';
+    document.getElementById('demoProgressArea').style.display = 'block';
+    document.getElementById('progressRepoUrl').textContent = repoUrl;
+    connectSSE(data.demo_id);
+  } catch(err) {
+    alert('Error de conexión. Intenta de nuevo.');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Iniciar análisis →';
+  }
+});
+
+function connectSSE(demoId) {
+  const evtSource = new EventSource('/demo/stream/' + demoId);
+  const stepNames = ['clone','secrets','code','secrets2','report'];
+  evtSource.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const pct = data.pct || 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+    if (data.step && stepNames.includes(data.step)) {
+      const idx = stepNames.indexOf(data.step);
+      document.querySelectorAll('.demo-step').forEach((el, i) => {
+        el.className = 'demo-step';
+        if (i < idx) el.className = 'demo-step done';
+        else if (i === idx) el.className = 'demo-step active';
+      });
+    }
+    if (data.msg) {
+      document.getElementById('progressTitle').textContent = data.msg;
+    }
+    if (data.step === 'done' || data.step === 'complete') {
+      evtSource.close();
+      document.getElementById('progressIcon').textContent = '✅';
+      document.getElementById('progressFill').style.width = '100%';
+      document.getElementById('progressPct').textContent = '100%';
+      document.querySelectorAll('.demo-step').forEach(el => el.className = 'demo-step done');
+      document.getElementById('demoCompleteArea').style.display = 'block';
+      if (data.summary) {
+        document.getElementById('progressSummary').textContent = data.summary;
+      }
+      document.getElementById('progressResultLink').href = '/demo/result/' + demoId;
+    }
+  };
+  evtSource.onerror = function() {
+    evtSource.close();
+    if (currentDemoId) {
+      setTimeout(() => window.location.href = '/demo/result/' + currentDemoId, 1000);
+    }
+  };
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,90 @@
+version: "3.9"
+
+x-common: &common
+  env_file: .env
+  restart: unless-stopped
+  networks:
+    - codeaudit-net
+  volumes:
+    - data-volume:/app/data
+    - reports-volume:/app/reports
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: codeaudit
+      POSTGRES_USER: codeaudit
+      POSTGRES_PASSWORD: changeme-in-production
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - codeaudit-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeaudit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dashboard:
+    <<: *common
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://codeaudit:changeme-in-production@postgres:5432/codeaudit
+      DASHBOARD_PORT: "5000"
+    command: gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 120 app.dashboard.app:app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  landing:
+    <<: *common
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      LANDING_PORT: "5001"
+    command: gunicorn --bind 0.0.0.0:5001 --workers 2 landing_handler:app
+    depends_on:
+      - postgres
+
+  payment:
+    <<: *common
+    build: .
+    ports:
+      - "5002:5002"
+    environment:
+      PAYMENT_PORT: "5002"
+      DOMAIN: http://localhost:5001
+    command: gunicorn --bind 0.0.0.0:5002 --workers 2 payment:app
+    depends_on:
+      - postgres
+
+  continuous-audit:
+    <<: *common
+    build: .
+    ports:
+      - "5003:5003"
+    environment:
+      CONTINUOUS_PORT: "5003"
+    command: python3 continuous_audit.py --daemon
+    depends_on:
+      - postgres
+
+  runner:
+    <<: *common
+    build: .
+    command: python3 runner.py --daemon
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+  data-volume:
+  reports-volume:
+
+networks:
+  codeaudit-net:
+    driver: bridge

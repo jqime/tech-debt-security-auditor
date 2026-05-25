@@ -16,6 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.whitelabel.whitelabel import whitelabel_bp, get_client_config
 from app.db import get_db, init_db as db_init
 from app.demo.demo import demo_bp
+from landing_handler import landing_bp
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -37,6 +38,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("DASHBOARD_SECRET", "cambiar-en-produccion-123456")
 app.register_blueprint(whitelabel_bp)
 app.register_blueprint(demo_bp)
+app.register_blueprint(landing_bp)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "/login"
@@ -344,7 +346,7 @@ def index():
         db.close()
         wl_config = get_client_config(current_user.email) if current_user.is_authenticated else None
         return render_template_string(TEMPLATE, tab=tab, whitelabel=wl_config, leads=leads, users=users, payments=payments, tasks=load_tasks(current_user.id), stats=get_stats(), now=datetime.now().strftime("%Y-%m-%d %H:%M"))
-    return render_template_string(TEMPLATE, logged_out=True)
+    return (PROJECT_DIR / "app" / "landing" / "index.html").read_text(encoding="utf-8")
 
 
 @app.route("/login", methods=["POST"])
@@ -646,14 +648,23 @@ def serve_report(filename):
 
 @app.route("/terms")
 def terms():
+    landing_file = PROJECT_DIR / "app" / "landing" / "terms.html"
+    if landing_file.exists():
+        return landing_file.read_text(encoding="utf-8")
     return (PROJECT_DIR / "app" / "legal" / "terms.html").read_text(encoding="utf-8")
 
 @app.route("/privacy")
 def privacy():
+    landing_file = PROJECT_DIR / "app" / "landing" / "privacy.html"
+    if landing_file.exists():
+        return landing_file.read_text(encoding="utf-8")
     return (PROJECT_DIR / "app" / "legal" / "privacy.html").read_text(encoding="utf-8")
 
 @app.route("/security")
 def security():
+    landing_file = PROJECT_DIR / "app" / "landing" / "security.html"
+    if landing_file.exists():
+        return landing_file.read_text(encoding="utf-8")
     return (PROJECT_DIR / "app" / "legal" / "security.html").read_text(encoding="utf-8")
 
 @app.route("/partners")

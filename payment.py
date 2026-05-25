@@ -14,7 +14,7 @@ from app.db import get_db
 
 PROJECT_DIR = Path(__file__).parent
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
-DOMAIN = os.getenv("DOMAIN", "http://localhost:5001")
+BASE_URL = os.getenv("BASE_URL", os.getenv("DOMAIN", "http://localhost:5000"))
 
 app = Flask(__name__)
 
@@ -28,33 +28,12 @@ PRODUCTS = {
 }
 
 
-def get_or_create_price(price_id: str) -> str:
-    import stripe
-    stripe.api_key = STRIPE_SECRET_KEY
-    prices = stripe.Price.list(limit=100, currency="eur")
-    for p in prices:
-        if p.metadata.get("internal_id") == price_id:
-            return p.id
-    prod = stripe.Product.create(
-        name=PRODUCTS[price_id]["name"],
-        metadata={"internal_id": price_id},
-    )
-    price = stripe.Price.create(
-        product=prod.id,
-        unit_amount=PRODUCTS[price_id]["price_cents"],
-        currency="eur",
-        metadata={"internal_id": price_id},
-    )
-    return price.id
-
-
 def _handle_payment_async(customer_email: str, repo_url: str, plan_type: str, user_id: int = 0, demo_id: str = ""):
     print(f"  💳 Procesando pago: {customer_email} -> {plan_type}")
-
     try:
         email_script = PROJECT_DIR / "email_sender.py"
         if email_script.exists():
-            domain = os.getenv("DOMAIN", "http://localhost:5001")
+            domain = BASE_URL
             welcome_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
@@ -63,7 +42,7 @@ def _handle_payment_async(customer_email: str, repo_url: str, plan_type: str, us
     <p>Gracias por tu compra, <strong>{customer_email}</strong>.</p>
     <p>Tu plan <strong>{plan_type}</strong> está activo. Hemos creado tu cuenta y encolado la auditoría.</p>
     <p style="text-align:center;margin:20px 0;">
-        <a href="{domain}/dashboard/onboarding?email={customer_email}&plan={plan_type}" 
+        <a href="{domain}/dashboard/onboarding?email={customer_email}&plan={plan_type}"
            style="display:inline-block;background:#16a34a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;">
            Ir al panel de control →
         </a>
@@ -97,7 +76,10 @@ def _handle_payment_async(customer_email: str, repo_url: str, plan_type: str, us
 @app.route("/create-checkout-session", methods=["POST"])
 def create_checkout():
     if not STRIPE_SECRET_KEY:
-        return jsonify({"error": "STRIPE_SECRET_KEY no configurada"}), 500
+        return jsonify({
+            "error": "Stripe no configurado",
+            "contact": "ventas@codeauditpro.com"
+        })
 
     data = request.get_json(silent=True) or request.form
     plan = data.get("plan", "auditoria_unica")
@@ -110,11 +92,19 @@ def create_checkout():
 
     import stripe
     stripe.api_key = STRIPE_SECRET_KEY
-    stripe_price_id = get_or_create_price(plan)
+
+    mode = "payment" if plan in ("auditoria_unica", "compliance_pro") else "subscription"
+    price_data = {
+        "currency": "eur",
+        "product_data": {"name": PRODUCTS[plan]["name"]},
+        "unit_amount": PRODUCTS[plan]["price_cents"],
+    }
+    if "interval" in PRODUCTS[plan]:
+        price_data["recurring"] = {"interval": PRODUCTS[plan]["interval"]}
 
     session = stripe.checkout.Session.create(
-        mode="payment" if plan in ("auditoria_unica", "compliance_pro") else "subscription",
-        line_items=[{"price": stripe_price_id, "quantity": 1}],
+        mode=mode,
+        line_items=[{"price_data": price_data, "quantity": 1}],
         customer_email=customer_email or None,
         payment_method_types=["card", "sepa_debit"],
         metadata={
@@ -123,8 +113,8 @@ def create_checkout():
             "plan": plan,
             "demo_id": demo_id,
         },
-        success_url=f"{DOMAIN}/dashboard/onboarding?session_id={{CHECKOUT_SESSION_ID}}&plan={plan}",
-        cancel_url=f"{DOMAIN}/cancel",
+        success_url=f"{BASE_URL}/dashboard/onboarding?session_id={{CHECKOUT_SESSION_ID}}&plan={plan}",
+        cancel_url=f"{BASE_URL}/#precios",
     )
     return jsonify({"url": session.url, "session_id": session.id})
 
@@ -132,7 +122,7 @@ def create_checkout():
 @app.route("/stripe-webhook", methods=["POST"])
 def stripe_webhook():
     if not STRIPE_SECRET_KEY:
-        return jsonify({"error": "STRIPE_SECRET_KEY no configurada"}), 500
+        return jsonify({"error": "Stripe no configurado"}), 500
 
     import stripe
     stripe.api_key = STRIPE_SECRET_KEY
@@ -174,7 +164,6 @@ def stripe_webhook():
                 user_id = row["id"] if row else 0
             db.close()
 
-            # Save payment record
             db = get_db()
             db.execute(
                 "INSERT INTO payments (user_id, stripe_session_id, amount, currency, status) VALUES (?, ?, ?, ?, 'completed')",
@@ -327,7 +316,7 @@ def onboarding():
                 status = task["status"]
                 progress = 80 if status == "done" else 60 if status == "running" else 50
         db.close()
-    elif session_id:
+    elif session_id and STRIPE_SECRET_KEY:
         import stripe
         stripe.api_key = STRIPE_SECRET_KEY
         try:

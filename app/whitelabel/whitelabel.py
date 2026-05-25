@@ -1,6 +1,5 @@
 import base64
 import json
-import sqlite3
 from datetime import datetime
 from pathlib import Path
 
@@ -9,42 +8,14 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
+from app.db import get_db
+
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "data"
 DB_PATH = DATA_DIR / "dashboard.db"
 LOGOS_DIR = DATA_DIR / "logos"
 
 whitelabel_bp = Blueprint("whitelabel", __name__)
-
-
-def get_db():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_whitelabel_db():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    LOGOS_DIR.mkdir(parents=True, exist_ok=True)
-    conn = get_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS whitelabel_config (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            client_id TEXT UNIQUE NOT NULL,
-            subdomain TEXT UNIQUE NOT NULL,
-            company_name TEXT NOT NULL,
-            primary_color TEXT DEFAULT '#6366f1',
-            logo_url TEXT DEFAULT '',
-            custom_domain TEXT DEFAULT '',
-            plan_type TEXT DEFAULT 'enterprise',
-            features_json TEXT DEFAULT '{}',
-            active INTEGER DEFAULT 1,
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now'))
-        )
-    """)
-    conn.commit()
-    conn.close()
 
 
 def get_subdomain():
@@ -58,12 +29,12 @@ def get_subdomain():
 def get_client_config(email):
     if not email:
         return None
-    conn = get_db()
-    row = conn.execute(
+    db = get_db()
+    row = db.execute(
         "SELECT * FROM whitelabel_config WHERE client_id = ? AND active = 1",
         (email,),
     ).fetchone()
-    conn.close()
+    db.close()
     if row:
         return dict(row)
     return None
@@ -71,12 +42,12 @@ def get_client_config(email):
 
 @whitelabel_bp.route("/whitelabel/<client_id>")
 def get_whitelabel(client_id):
-    conn = get_db()
-    row = conn.execute(
+    db = get_db()
+    row = db.execute(
         "SELECT * FROM whitelabel_config WHERE client_id = ? AND active = 1",
         (client_id,),
     ).fetchone()
-    conn.close()
+    db.close()
     if not row:
         return jsonify({"error": "Config not found"}), 404
     config = dict(row)
@@ -104,13 +75,13 @@ def save_whitelabel():
     active = int(data.get("active", 1))
     now = datetime.now().isoformat()
 
-    conn = get_db()
-    existing = conn.execute(
+    db = get_db()
+    existing = db.execute(
         "SELECT id FROM whitelabel_config WHERE client_id = ?", (client_id,)
     ).fetchone()
 
     if existing:
-        conn.execute(
+        db.execute(
             """UPDATE whitelabel_config SET subdomain=?, company_name=?, primary_color=?,
                logo_url=?, custom_domain=?, plan_type=?, features_json=?, active=?, updated_at=?
                WHERE client_id=?""",
@@ -118,7 +89,7 @@ def save_whitelabel():
              plan_type, features_json, active, now, client_id),
         )
     else:
-        conn.execute(
+        db.execute(
             """INSERT INTO whitelabel_config
                (client_id, subdomain, company_name, primary_color, logo_url,
                 custom_domain, plan_type, features_json, active, created_at, updated_at)
@@ -127,8 +98,8 @@ def save_whitelabel():
              custom_domain, plan_type, features_json, active, now, now),
         )
 
-    conn.commit()
-    conn.close()
+    db.commit()
+    db.close()
     return jsonify({"ok": True, "client_id": client_id})
 
 
@@ -137,9 +108,9 @@ def save_whitelabel():
 def whitelabel_admin():
     if not current_user.is_admin:
         return redirect("/")
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM whitelabel_config ORDER BY created_at DESC").fetchall()
-    conn.close()
+    db = get_db()
+    rows = db.execute("SELECT * FROM whitelabel_config ORDER BY created_at DESC").fetchall()
+    db.close()
     clients = [dict(r) for r in rows]
 
     HTML = """<!DOCTYPE html>
@@ -284,26 +255,26 @@ def upload_logo():
     with open(logo_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
     data_uri = f"data:image/png;base64,{b64}"
-    conn = get_db()
-    existing = conn.execute(
+    db = get_db()
+    existing = db.execute(
         "SELECT id FROM whitelabel_config WHERE client_id = ?", (current_user.email,)
     ).fetchone()
     now = datetime.now().isoformat()
     if existing:
-        conn.execute(
+        db.execute(
             "UPDATE whitelabel_config SET logo_url=?, updated_at=? WHERE client_id=?",
             (data_uri, now, current_user.email),
         )
     else:
         subdomain = get_subdomain() or current_user.email.split("@")[0]
-        conn.execute(
+        db.execute(
             """INSERT INTO whitelabel_config
                (client_id, subdomain, company_name, logo_url, created_at, updated_at)
                VALUES (?,?,?,?,?,?)""",
             (current_user.email, subdomain, current_user.email, data_uri, now, now),
         )
-    conn.commit()
-    conn.close()
+    db.commit()
+    db.close()
     return redirect("/my-company")
 
 
@@ -331,26 +302,23 @@ def my_company_save():
     primary_color = data.get("primary_color", "#6366f1")
     logo_url = data.get("logo_url", "")
     now = datetime.now().isoformat()
-    conn = get_db()
-    existing = conn.execute(
+    db = get_db()
+    existing = db.execute(
         "SELECT id FROM whitelabel_config WHERE client_id = ?", (client_id,)
     ).fetchone()
     if existing:
-        conn.execute(
+        db.execute(
             """UPDATE whitelabel_config SET subdomain=?, company_name=?, primary_color=?,
                logo_url=?, updated_at=? WHERE client_id=?""",
             (subdomain, company_name, primary_color, logo_url, now, client_id),
         )
     else:
-        conn.execute(
+        db.execute(
             """INSERT INTO whitelabel_config
                (client_id, subdomain, company_name, primary_color, logo_url, created_at, updated_at)
                VALUES (?,?,?,?,?,?,?)""",
             (client_id, subdomain, company_name, primary_color, logo_url, now, now),
         )
-    conn.commit()
-    conn.close()
+    db.commit()
+    db.close()
     return redirect("/?tab=mycompany")
-
-
-init_whitelabel_db()

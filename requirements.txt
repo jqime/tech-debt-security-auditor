@@ -1,0 +1,11 @@
+flask>=3.0
+flask-login>=0.6
+flask-cors>=4.0
+werkzeug>=3.0
+stripe>=7.0
+weasyprint>=60
+qrcode[pil]>=7.4
+apscheduler>=3.10
+requests>=2.31
+psycopg2-binary>=2.9
+gunicorn>=21.2

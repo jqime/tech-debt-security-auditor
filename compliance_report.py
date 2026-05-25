@@ -147,6 +147,7 @@ def evaluate_debt_score(debt):
 
 
 def generate_html(scores, sec, debt, overall):
+    import hashlib
     secrets = sec.get("secrets", [])
     sast = sec.get("sast_findings", [])
     vuln_deps = sec.get("vulnerable_dependencies", [])
@@ -154,16 +155,34 @@ def generate_html(scores, sec, debt, overall):
     nis2_rows = ""
     for key, art in NIS2_MAPPING.items():
         sc = int(scores.get(key, 50))
-        status = "✅ Cumple" if sc >= 70 else ("⚠️ Parcial" if sc >= 40 else "❌ No cumple")
-        badge = "success" if "Cumple" in status and "No" not in status else ("warning" if "Parcial" in status else "danger")
-        nis2_rows += f"<tr><td>{art['art']}</td><td>{art['name']}<br><small class='text-muted'>{art['desc']}</small></td><td><div class='score-bar'><div class='score-fill' style='width:{sc}%'></div></div><small>{sc}/100</small></td><td><span class='badge bg-{badge}'>{status}</span></td></tr>\n"
+        icon = "✅" if sc >= 70 else ("⚠️" if sc >= 40 else "❌")
+        txt = "Cumple" if sc >= 70 else ("Parcial" if sc >= 40 else "No cumple")
+        c = "#10b981" if sc >= 70 else ("#fbbf24" if sc >= 40 else "#f43f5e")
+        nis2_rows += f"""<tr>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b;font-weight:600;color:#e2e8f0">{art['art']}</td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b;color:#cbd5e1">{art['name']}<br><span style="font-size:0.8rem;color:#64748b">{art['desc']}</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b">
+<div style="height:6px;border-radius:3px;background:#1e293b;margin-bottom:4px;overflow:hidden"><div style="height:6px;border-radius:3px;width:{sc}%;background:linear-gradient(90deg,#6366f1,#a5b4fc)"></div></div>
+<span style="font-size:0.75rem;color:#64748b">{sc}/100</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b">
+<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:600;background:{c}20;color:{c}">{icon} {txt}</span></td>
+</tr>\n"""
 
     dora_rows = ""
     for key, art in DORA_MAPPING.items():
         sc = int(scores.get(key, 50))
-        status = "✅ Cumple" if sc >= 70 else ("⚠️ Parcial" if sc >= 40 else "❌ No cumple")
-        badge = "success" if "Cumple" in status and "No" not in status else ("warning" if "Parcial" in status else "danger")
-        dora_rows += f"<tr><td>{art['art']}</td><td>{art['name']}<br><small class='text-muted'>{art['desc']}</small></td><td><div class='score-bar'><div class='score-fill' style='width:{sc}%'></div></div><small>{sc}/100</small></td><td><span class='badge bg-{badge}'>{status}</span></td></tr>\n"
+        icon = "✅" if sc >= 70 else ("⚠️" if sc >= 40 else "❌")
+        txt = "Cumple" if sc >= 70 else ("Parcial" if sc >= 40 else "No cumple")
+        c = "#10b981" if sc >= 70 else ("#fbbf24" if sc >= 40 else "#f43f5e")
+        dora_rows += f"""<tr>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b;font-weight:600;color:#e2e8f0">{art['art']}</td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b;color:#cbd5e1">{art['name']}<br><span style="font-size:0.8rem;color:#64748b">{art['desc']}</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b">
+<div style="height:6px;border-radius:3px;background:#1e293b;margin-bottom:4px;overflow:hidden"><div style="height:6px;border-radius:3px;width:{sc}%;background:linear-gradient(90deg,#6366f1,#a5b4fc)"></div></div>
+<span style="font-size:0.75rem;color:#64748b">{sc}/100</span></td>
+<td style="padding:12px 16px;border-bottom:1px solid #1e293b">
+<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:600;background:{c}20;color:{c}">{icon} {txt}</span></td>
+</tr>\n"""
 
     sev_count = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
     for v in vuln_deps:
@@ -173,100 +192,181 @@ def generate_html(scores, sec, debt, overall):
         s = f.get("severity", "UNKNOWN").upper()
         sev_count[s] = sev_count.get(s, 0) + 1
 
+    if overall < 30:
+        fine_text = "HASTA 10.000.000 €"
+        fine_color = "#f43f5e"
+    elif overall < 60:
+        fine_text = "HASTA 2.000.000 €"
+        fine_color = "#fbbf24"
+    else:
+        fine_text = "BAJO — < 500.000 €"
+        fine_color = "#10b981"
+
+    score_color = "#f43f5e" if overall < 40 else ("#fbbf24" if overall < 70 else "#10b981")
+
+    cert_data = json.dumps({k: scores.get(k) for k in {**NIS2_MAPPING, **DORA_MAPPING}}, sort_keys=True)
+    cert_hash = hashlib.sha256(cert_data.encode()).hexdigest()
+
+    actions = []
+    if secrets:
+        actions.append(("🔴 CRÍTICA", "Eliminar secretos hardcodeados", f"Se detectaron {len(secrets)} secretos en el código. Rotar credenciales inmediatamente y configurar pre-commit hooks.", "#f43f5e"))
+    if vuln_deps:
+        actions.append(("🔴 CRÍTICA", "Actualizar dependencias vulnerables", f"Se encontraron {len(vuln_deps)} dependencias con CVEs conocidos. Actualizar a versiones parcheadas.", "#f43f5e"))
+    if sast:
+        actions.append(("🟡 IMPORTANTE", "Corregir fallos SAST", f"{len(sast)} hallazgos de análisis estático requieren revisión.", "#fbbf24"))
+    if debt.get("duplicated_lines", 0) > 0:
+        actions.append(("🟡 IMPORTANTE", "Reducir código duplicado", f"{debt.get('duplicated_lines', 0)} líneas duplicadas incrementan el riesgo de mantenimiento.", "#fbbf24"))
+    actions.append(("🟢 RECOMENDADO", "Implementar pruebas de penetración", "Pruebas de resiliencia digital requeridas por DORA Art. 24.", "#6366f1"))
+
+    actions_html = ""
+    for i, (priority, title, desc, color) in enumerate(actions, 1):
+        actions_html += f"""<div style="display:flex;gap:16px;padding:16px;background:rgba(30,41,59,0.5);border-radius:12px;border-left:4px solid {color};margin-bottom:12px">
+<div style="min-width:32px;height:32px;border-radius:50%;background:{color}20;display:flex;align-items:center;justify-content:center;color:{color};font-size:0.8rem;font-weight:700">{i}</div>
+<div>
+<div style="font-size:0.75rem;font-weight:700;color:{color};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">{priority}</div>
+<div style="font-weight:600;color:#e2e8f0;margin-bottom:4px">{title}</div>
+<div style="font-size:0.85rem;color:#94a3b8">{desc}</div>
+</div>
+</div>\n"""
+
     findings_rows = ""
     for f in secrets[:10]:
-        findings_rows += f"<tr><td>🔑</td><td>{f.get('file','')}:{f.get('line','')}</td><td>{f.get('reason','')[:80]}</td><td><span class='badge bg-danger'>CRITICAL</span></td></tr>\n"
+        findings_rows += f"""<tr>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center">🔑</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;font-family:monospace;font-size:0.8rem;color:#38bdf8">{f.get('file','')}:{f.get('line','')}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;color:#94a3b8">{f.get('reason','')[:80]}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;background:#f43f5e20;color:#f43f5e">CRITICAL</span></td>
+</tr>\n"""
     for f in vuln_deps[:10]:
-        findings_rows += f"<tr><td>📦</td><td>{f.get('name','')} {f.get('version','')}</td><td>{f.get('title','')[:80]}</td><td><span class='badge bg-{'danger' if f.get('severity','').upper() in ('CRITICAL','HIGH') else 'warning'}'>{(f.get('severity','') or 'UNKNOWN').upper()}</span></td></tr>\n"
+        sev = (f.get('severity', '') or 'UNKNOWN').upper()
+        sc = "#f43f5e" if sev in ("CRITICAL", "HIGH") else "#fbbf24"
+        findings_rows += f"""<tr>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center">📦</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;font-family:monospace;font-size:0.8rem;color:#38bdf8">{f.get('name','')} {f.get('version','')}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;color:#94a3b8">{f.get('title','')[:80]}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;background:{sc}20;color:{sc}">{sev}</span></td>
+</tr>\n"""
     for f in sast[:10]:
-        findings_rows += f"<tr><td>🔍</td><td>{f.get('file','')}:{f.get('line','')}</td><td>{f.get('reason','')[:80]}</td><td><span class='badge bg-{'danger' if f.get('severity','').upper() in ('CRITICAL','HIGH') else 'warning'}'>{(f.get('severity','') or 'MEDIUM').upper()}</span></td></tr>\n"
+        sev = (f.get('severity', '') or 'MEDIUM').upper()
+        sc = "#f43f5e" if sev in ("CRITICAL", "HIGH") else ("#fbbf24" if sev == "MEDIUM" else "#94a3b8")
+        findings_rows += f"""<tr>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center">🔍</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;font-family:monospace;font-size:0.8rem;color:#38bdf8">{f.get('file','')}:{f.get('line','')}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;color:#94a3b8">{f.get('reason','')[:80]}</td>
+<td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:center"><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;background:{sc}20;color:{sc}">{sev}</span></td>
+</tr>\n"""
+
+    ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    report_id = datetime.now().strftime('%Y%m%d%H%M%S')
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Informe de Cumplimiento Normativo - CodeAudit Pro</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Cumplimiento NIS2/DORA - Informe de Auditoría | CodeAudit Pro</title>
 <style>
-@page{{size:A4;margin:1.5cm}}
-body{{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif;padding:2rem}}
-.container{{max-width:1000px;margin:0 auto}}
-h1{{color:#a5b4fc;font-weight:800}}
-h2{{color:#818cf8;margin-top:2.5rem;border-bottom:1px solid #1e293b;padding-bottom:.5rem}}
-h3{{color:#a5b4fc;margin-top:1.5rem}}
-.card{{background:#131b2e;border:1px solid #1e293b;border-radius:16px;padding:1.5rem;margin:1rem 0}}
-.table{{color:#f8fafc;font-size:.9rem}}
-.table th{{border-color:#1e293b;color:#94a3b8;font-weight:600}}
-.table td{{border-color:#1e293b}}
-.badge{{font-size:.75rem;padding:.35em .65em}}
-.score-bar{{height:6px;border-radius:3px;background:#1e293b;margin-top:4px}}
-.score-fill{{height:6px;border-radius:3px;background:linear-gradient(90deg,#f43f5e,#fbbf24,#10b981)}}
-.overall-score{{font-size:4rem;font-weight:800;text-align:center;background:linear-gradient(135deg,#a5b4fc,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
-.severity-bar{{display:flex;gap:4px;margin:1rem 0}}
-.severity-bar .seg{{height:12px;border-radius:6px;flex:1}}
-@media print{{body{{background:#fff;color:#000}} .card{{background:#f8fafc;border-color:#ddd}} h1,h2,h3{{color:#4338ca}} .table td{{border-color:#eee}} .text-muted{{color:#666!important}} .overall-score{{-webkit-text-fill-color:#4338ca;color:#4338ca}} }}
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI','Inter',system-ui,sans-serif;line-height:1.6}}
+.container{{max-width:1000px;margin:0 auto;padding:2rem 1.5rem}}
+.hero{{background:linear-gradient(135deg,#0f1529,#1a1f3a);border:1px solid #1e293b;border-radius:20px;padding:3rem 2rem;text-align:center;position:relative;overflow:hidden;margin-bottom:2rem}}
+.hero::before{{content:'';position:absolute;top:-60%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,0.15),transparent 70%);pointer-events:none}}
+.hero::after{{content:'';position:absolute;bottom:-30%;left:-10%;width:300px;height:300px;background:radial-gradient(circle,rgba(234,179,8,0.08),transparent 70%);pointer-events:none}}
+.hero h1{{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#fbbf24,#f59e0b,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:0.5rem;position:relative;z-index:1}}
+.hero .subtitle{{color:#94a3b8;font-size:0.9rem;position:relative;z-index:1}}
+.hero .report-id{{color:#475569;font-size:0.75rem;margin-top:0.5rem;position:relative;z-index:1}}
+.score-card{{background:linear-gradient(135deg,#131b2e,#1a2340);border:1px solid #1e293b;border-radius:20px;padding:2.5rem 2rem;text-align:center;margin-bottom:2rem}}
+.score-ring{{width:140px;height:140px;border-radius:50%;background:conic-gradient({score_color} {overall:.0f}%,#1e293b 0%);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;position:relative}}
+.score-ring::before{{content:'';position:absolute;width:110px;height:110px;border-radius:50%;background:#131b2e}}
+.score-value{{font-size:3rem;font-weight:800;color:{score_color};position:relative;z-index:1}}
+.score-label{{color:#94a3b8;font-size:0.85rem;margin-bottom:1.5rem}}
+.fine-estimate{{background:rgba(30,41,59,0.5);border-radius:16px;padding:1.5rem 2rem;margin-bottom:1.5rem;border:1px solid rgba(30,41,59,0.8)}}
+.fine-estimate .label{{color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem}}
+.fine-estimate .amount{{font-size:2rem;font-weight:800;color:{fine_color}}}
+.fine-estimate .ref{{color:#475569;font-size:0.75rem;margin-top:0.25rem}}
+.summary-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}}
+.summary-card{{background:#131b2e;border:1px solid #1e293b;border-radius:16px;padding:1.5rem;text-align:center;transition:all 0.3s ease}}
+.summary-card:hover{{border-color:#6366f1;transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.1)}}
+.summary-card .num{{font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,#a5b4fc,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}}
+.summary-card .num.red{{background:linear-gradient(135deg,#f43f5e,#fb7185);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
+.summary-card .num.amber{{background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
+.summary-card .num.green{{background:linear-gradient(135deg,#10b981,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
+.summary-card .label{{color:#94a3b8;font-size:0.8rem;margin-top:0.5rem;font-weight:500}}
+.section-title{{font-size:1.25rem;font-weight:700;color:#e2e8f0;margin:2rem 0 1rem;display:flex;align-items:center;gap:8px}}
+.section-title .line{{flex:1;height:1px;background:linear-gradient(90deg,#1e293b,transparent)}}
+.table-wrap{{background:#131b2e;border:1px solid #1e293b;border-radius:16px;overflow:hidden;margin-bottom:2rem}}
+.table-wrap table{{width:100%;border-collapse:collapse;font-size:0.85rem}}
+.table-wrap th{{padding:12px 16px;text-align:left;font-weight:600;color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;background:rgba(30,41,59,0.3);border-bottom:1px solid #1e293b}}
+.cert-block{{background:linear-gradient(135deg,#0f1529,#131b2e);border:1px solid #1e293b;border-radius:16px;padding:2rem;margin:2rem 0;display:flex;flex-wrap:wrap;gap:2rem;align-items:center;justify-content:center}}
+.cert-block .hash{{font-family:monospace;font-size:0.7rem;color:#64748b;word-break:break-all;max-width:300px}}
+.cert-block .qr img{{border-radius:12px}}
+.cert-block .cert-text{{text-align:center}}
+.cert-block .cert-text .title{{color:#a5b4fc;font-weight:700;font-size:0.9rem}}
+.cert-block .cert-text .sub{{color:#475569;font-size:0.75rem}}
+.footer{{text-align:center;padding:1.5rem 0;border-top:1px solid #1e293b;margin-top:2rem}}
+.footer .company{{color:#6366f1;font-weight:700}}
+.footer .verify{{color:#475569;font-size:0.8rem;margin-top:4px}}
+@media print{{body{{background:#fff!important;color:#000!important}} .hero,.score-card,.summary-card,.table-wrap,.cert-block{{background:#f8fafc!important;border-color:#ddd!important}} .hero h1,.summary-card .num,.summary-card .num.red,.summary-card .num.amber,.summary-card .num.green{{-webkit-text-fill-color:#4338ca!important;color:#4338ca!important}} .section-title,.cert-block .cert-text .title{{color:#4338ca!important}} .fine-estimate .amount,.score-value{{color:#4338ca!important}} .footer .company{{color:#4338ca!important}} .table-wrap th{{color:#666!important}} .score-ring{{background:conic-gradient(#4338ca {overall:.0f}%,#eee 0%)!important}}}}
 </style>
 </head>
 <body>
 <div class="container">
 
-<div style="text-align:center;margin-bottom:2rem">
-<img src="https://img.shields.io/badge/CodeAudit%20Pro-Cumplimiento%20Normativo-6366f1?style=for-the-badge" alt="CodeAudit Pro" style="margin-bottom:1rem">
-<h1>🛡️ Informe de Cumplimiento Normativo</h1>
-<p class="text-muted">Generado: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Herramientas: Trivy, Semgrep, Bandit, truffleHog</p>
+<div class="hero">
+<h1>Cumplimiento NIS2/DORA — Informe de Auditoría</h1>
+<p class="subtitle">Generado: {ts} · Herramientas: Trivy, Semgrep, Bandit, truffleHog</p>
+<p class="report-id">ID: {report_id} · Versión 2.0</p>
 </div>
 
-<div class="card text-center">
-<div class="overall-score">{overall:.0f}</div>
-<p class="text-muted">Score global de cumplimiento NIS2/DORA</p>
-<div class="severity-bar">
-<div class="seg bg-danger" style="flex:{sev_count.get('CRITICAL',0)+1}"></div>
-<div class="seg bg-warning" style="flex:{sev_count.get('HIGH',0)+1}"></div>
-<div class="seg bg-info" style="flex:{sev_count.get('MEDIUM',0)+1}"></div>
-<div class="seg bg-secondary" style="flex:{sev_count.get('LOW',0)+1}"></div>
+<div class="score-card">
+<div class="score-ring"><div class="score-value">{overall:.0f}</div></div>
+<p class="score-label">Score global de cumplimiento normativo NIS2/DORA</p>
+<div class="fine-estimate">
+<p class="label">Riesgo de multa potencial</p>
+<p class="amount">{fine_text}</p>
+<p class="ref">Según Art. 31 NIS2 y Art. 50 DORA</p>
 </div>
-<small class="text-muted">CRITICAL ({sev_count.get('CRITICAL',0)}) · HIGH ({sev_count.get('HIGH',0)}) · MEDIUM ({sev_count.get('MEDIUM',0)}) · LOW ({sev_count.get('LOW',0)})</small>
 </div>
 
-<div class="card">
-<h3>🔒 Resumen de hallazgos</h3>
-<table class="table table-dark">
-<tr><td>Secretos hardcodeados</td><td><strong>{'⚠️ ' + str(len(secrets)) + ' encontrados' if secrets else '✅ Ninguno'}</strong></td></tr>
-<tr><td>Vulnerabilidades en dependencias</td><td><strong>{'⚠️ ' + str(len(vuln_deps)) + ' detectadas' if vuln_deps else '✅ Ninguna'}</strong></td></tr>
-<tr><td>Fallos SAST</td><td><strong>{'⚠️ ' + str(len(sast)) + ' encontrados' if sast else '✅ Ninguno'}</strong></td></tr>
-</table>
+<div class="summary-grid">
+<div class="summary-card"><div class="num {'red' if secrets else 'green'}">{len(secrets)}</div><div class="label">Secretos Detectados</div></div>
+<div class="summary-card"><div class="num {'red' if vuln_deps else 'green'}">{len(vuln_deps)}</div><div class="label">Vulnerabilidades</div></div>
+<div class="summary-card"><div class="num {'red' if sast else 'green'}">{len(sast)}</div><div class="label">Fallos SAST</div></div>
+<div class="summary-card"><div class="num red">{sev_count.get('CRITICAL',0)}</div><div class="label">Hallazgos Críticos</div></div>
 </div>
 
-<h2>📋 NIS2 — Directiva de Seguridad de Redes</h2>
-<p class="text-muted">{len(NIS2_MAPPING)} artículos evaluados contra hallazgos reales</p>
-<div class="table-responsive"><table class="table table-dark">
+<div class="section-title">📋 NIS2 — Directiva de Seguridad de Redes <span class="line"></span></div>
+<p style="color:#64748b;font-size:0.85rem;margin-bottom:1rem">{len(NIS2_MAPPING)} artículos evaluados contra hallazgos reales del repositorio</p>
+<div class="table-wrap"><table>
 <thead><tr><th>Artículo</th><th>Requisito</th><th>Score</th><th>Estado</th></tr></thead>
 <tbody>{nis2_rows}</tbody></table></div>
 
-<h2>📋 DORA — Resiliencia Operativa Digital</h2>
-<p class="text-muted">{len(DORA_MAPPING)} artículos evaluados contra hallazgos reales</p>
-<div class="table-responsive"><table class="table table-dark">
-<thead><tr><th>Artículo</th><th>Requisito</th><th>Score</th><th>Status</th></tr></thead>
+<div class="section-title">📋 DORA — Resiliencia Operativa Digital <span class="line"></span></div>
+<p style="color:#64748b;font-size:0.85rem;margin-bottom:1rem">{len(DORA_MAPPING)} artículos evaluados contra hallazgos reales del repositorio</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Artículo</th><th>Requisito</th><th>Score</th><th>Estado</th></tr></thead>
 <tbody>{dora_rows}</tbody></table></div>
 
-<h2>🔬 Hallazgos detallados</h2>
-<div class="table-responsive"><table class="table table-dark">
+<div class="section-title">🔬 Hallazgos Detallados <span class="line"></span></div>
+<div class="table-wrap"><table>
 <thead><tr><th>Tipo</th><th>Ubicación</th><th>Descripción</th><th>Severidad</th></tr></thead>
-<tbody>{findings_rows if findings_rows else '<tr><td colspan="4" class="text-muted">No se encontraron hallazgos significativos.</td></tr>'}</tbody></table></div>
+<tbody>{findings_rows if findings_rows else '<tr><td colspan="4" style="padding:2rem;text-align:center;color:#64748b">No se encontraron hallazgos significativos.</td></tr>'}</tbody></table></div>
 
-<div class="card">
-<h3>⚖️ Declaración de cumplimiento</h3>
-<p>Este informe ha sido generado automáticamente por <strong>CodeAudit Pro</strong> basándose en el análisis estático del repositorio utilizando herramientas de seguridad estándar de la industria (Trivy, Semgrep, Bandit, truffleHog).</p>
-<ul>
-<li>Los scores de cumplimiento se calculan mediante heurísticas que correlacionan hallazgos técnicos con los requisitos de NIS2 y DORA.</li>
-<li>Para cumplimiento total se requiere además: política de seguridad formal, plan de continuidad de negocio, pruebas de penetración periódicas, designación de CISO/DPO y registro de actividades de tratamiento.</li>
-<li>Este informe es válido como <strong>punto de partida para la adecuación normativa</strong> y puede ser presentado a auditores como evidencia de medidas técnicas adoptadas (Art. 21 NIS2, Art. 5-16 DORA).</li>
-</ul>
-<p class="text-muted mt-3"><small>ID de informe: {datetime.now().strftime('%Y%m%d%H%M%S')} | Versión: 2.0</small></p>
+<div class="section-title">✅ Acciones Recomendadas <span class="line"></span></div>
+{actions_html}
+
+<div class="cert-block">
+<div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=codeauditpro.com/verify/{report_id}" alt="QR de verificación"></div>
+<div class="cert-text">
+<p class="title">Verificado por CodeAudit Pro</p>
+<p class="sub" style="margin-top:0.5rem">Hash de verificación SHA-256:</p>
+<p class="hash">{cert_hash}</p>
+<p class="sub" style="margin-top:0.5rem">Este informe es válido como evidencia de debida diligencia técnica</p>
+</div>
 </div>
 
-<div style="text-align:center;margin-top:2rem;padding-top:1rem;border-top:1px solid #1e293b">
-<small class="text-muted">CodeAudit Pro — Tech Debt & Security Auditor · Cumplimiento NIS2/DORA · © 2026</small>
+<div class="footer">
+<p class="company">CodeAudit Pro — Tech Debt & Security Auditor</p>
+<p class="verify">Para verificar este informe: codeauditpro.com/verify · NIS2/DORA Compliance Engine v2.0</p>
 </div>
 
 </div>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Seguridad y Privacidad — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#070d1a;color:#f8fafc;font-family:'Segoe UI',system-ui,sans-serif}
+.navbar{background:rgba(7,13,26,0.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.hero{padding:120px 0 60px;background:linear-gradient(135deg,#070d1a,#0a1428,#1a1040);text-align:center}
+.hero h1{font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,#f8fafc,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{color:#94a3b8;max-width:600px;margin:1rem auto 0;font-size:1.1rem}
+section{padding:3rem 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+section:last-child{border-bottom:none}
+.container{max-width:800px;margin:0 auto;padding:0 1.5rem}
+h2{font-size:1.4rem;font-weight:700;color:#e2e8f0;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px}
+h2 i{color:#f59e0b}
+.item{display:flex;align-items:flex-start;gap:14px;padding:12px 0}
+.item i{color:#10b981;font-size:1.1rem;margin-top:3px;flex-shrink:0}
+.item p{color:#cbd5e1;font-size:0.92rem;margin:0}
+.contact-card{background:linear-gradient(135deg,#0f1529,#0a1428);border:2px solid rgba(245,158,11,0.2);border-radius:16px;padding:2rem;text-align:center;max-width:450px;margin:0 auto}
+.contact-card i{font-size:2.5rem;color:#f59e0b;margin-bottom:0.75rem}
+.contact-card h3{color:#f1f5f9;font-weight:600;font-size:1.1rem;margin-bottom:0.5rem}
+.contact-card a{color:#f59e0b;font-weight:600;text-decoration:none;font-size:1.1rem}
+.contact-card .response{color:#64748b;font-size:0.82rem;margin-top:0.5rem}
+footer{padding:1.5rem 0;text-align:center;color:#475569;font-size:0.82rem}
+footer a{color:#64748b;text-decoration:none;margin:0 8px}
+</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+  <div class="container" style="max-width:1100px">
+    <a class="navbar-brand fw-bold" href="/">
+      <i class="bi bi-shield-check text-warning me-2"></i>CodeAudit Pro
+    </a>
+    <div class="collapse navbar-collapse" id="navmenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/">← Volver al inicio</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="container">
+    <h1>Seguridad y privacidad de tu código</h1>
+    <p>Protegemos tu código como si fuera nuestro. Transparencia total en cada paso.</p>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <h2><i class="bi bi-shield-check"></i> ¿Qué pasa con mi código?</h2>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>El repositorio se clona en un entorno aislado temporal</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Se elimina automáticamente al finalizar el análisis (máx. 15 min)</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Nunca almacenamos el código fuente en nuestros sistemas</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Solo guardamos los metadatos del análisis (hallazgos, scores)</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Comunicaciones cifradas con TLS 1.3</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2><i class="bi bi-server"></i> Infraestructura</h2>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Servidores en la Unión Europea</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Sin acceso de terceros al código</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Análisis ejecutado en contenedores Docker aislados</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Logs de auditoría disponibles bajo petición</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2><i class="bi bi-file-earmark-text"></i> Cumplimiento legal</h2>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Operamos bajo RGPD (Reglamento 2016/679)</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>DPA (Acuerdo de tratamiento de datos) disponible bajo petición</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Retención de datos: 12 meses por defecto</p></div>
+    <div class="item"><i class="bi bi-check-circle-fill"></i><p>Borrado bajo petición en 30 días</p></div>
+  </div>
+</section>
+
+<section style="border-bottom:none">
+  <div class="container">
+    <h2><i class="bi bi-envelope"></i> Contacto de seguridad</h2>
+    <div class="contact-card">
+      <i class="bi bi-shield-lock"></i>
+      <h3>Reportar vulnerabilidad</h3>
+      <a href="mailto:security@codeauditpro.com">security@codeauditpro.com</a>
+      <p class="response">Tiempo de respuesta: 48h hábiles</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="/">Inicio</a>
+  <a href="/terms">Términos</a>
+  <a href="/privacy">Privacidad</a>
+  <p class="mt-2">MIT © 2026 CodeAudit Pro — Madrid, España</p>
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

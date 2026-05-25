@@ -192,123 +192,148 @@ body{background:#070d1a;color:#f8fafc;font-family:'Segoe UI',system-ui,sans-seri
 .logo{font-weight:700;font-size:1.1rem}
 .logo span{color:#f59e0b}
 .container{max-width:900px;margin:0 auto;padding:2rem}
-h1{font-size:1.8rem;font-weight:700;margin-bottom:0.5rem}
+h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
 .sub{color:#64748b;margin-bottom:2rem}
-.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
-.score-card{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.5rem;text-align:center}
-.score-card .num{font-size:2.2rem;font-weight:800;margin-bottom:0.25rem}
-.score-card .label{font-size:0.75rem;color:#64748b}
-.score-card.critical .num{color:#ef4444}
-.score-card.warning .num{color:#f59e0b}
-.score-card.ok .num{color:#10b981}
-.table-wrap{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;margin-bottom:2rem}
-table{width:100%;border-collapse:collapse}
-th{padding:12px 16px;text-align:left;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06)}
-td{padding:12px 16px;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#cbd5e1}
-tr:last-child td{border-bottom:none}
+
+.score-circle-wrap{display:flex;justify-content:center;margin-bottom:2rem}
+.score-circle{width:160px;height:160px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:8px solid;font-weight:800}
+.score-circle .score-num{font-size:2.8rem;line-height:1}
+.score-circle .score-label{font-size:0.7rem;opacity:0.8;margin-top:2px}
+.score-circle.red{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,0.08)}
+.score-circle.yellow{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,0.08)}
+.score-circle.green{border-color:#10b981;color:#10b981;background:rgba(16,185,129,0.08)}
+
+.vuln-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem}
+.vuln-card{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:1.25rem;text-align:center}
+.vuln-card .num{font-size:2rem;font-weight:800}
+.vuln-card .label{font-size:0.7rem;color:#64748b;margin-top:4px}
+.vuln-card.critical .num{color:#ef4444}
+.vuln-card.high .num{color:#f59e0b}
+.vuln-card.medium .num{color:#fbbf24}
+.vuln-card.low .num{color:#10b981}
+
+.findings-table{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;margin-bottom:2rem}
+.findings-table table{width:100%;border-collapse:collapse}
+.findings-table th{padding:12px 16px;text-align:left;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.06)}
+.findings-table td{padding:12px 16px;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);color:#cbd5e1}
+.findings-table tr:last-child td{border-bottom:none}
+
 .badge{display:inline-flex;padding:2px 10px;border-radius:100px;font-size:0.65rem;font-weight:700;text-transform:uppercase}
 .badge.critical{background:rgba(239,68,68,0.15);color:#ef4444}
 .badge.high{background:rgba(245,158,11,0.15);color:#f59e0b}
 .badge.medium{background:rgba(251,191,36,0.12);color:#fbbf24}
 .badge.low{background:rgba(16,185,129,0.12);color:#10b981}
-.paywall-overlay{background:linear-gradient(135deg,#0a1428,rgba(15,23,42,0.95));border:2px solid rgba(245,158,11,0.3);border-radius:20px;padding:3rem 2rem;text-align:center;margin-bottom:2rem;position:relative;overflow:hidden}
-.paywall-overlay::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(245,158,11,0.03) 0%,transparent 50%);pointer-events:none}
-.paywall-overlay .lock{font-size:3rem;margin-bottom:1rem}
-.paywall-overlay h3{font-size:1.3rem;font-weight:700;color:#f1f5f9;margin-bottom:0.75rem}
-.paywall-overlay p{color:#64748b;font-size:0.9rem;max-width:500px;margin:0 auto 1.5rem}
-.paywall-cta{display:inline-block;padding:16px 48px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;font-size:1.05rem;text-decoration:none;transition:all 0.2s;box-shadow:0 4px 20px rgba(245,158,11,0.25)}
-.paywall-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.35)}
-.paywall-sub{font-size:0.72rem;color:#475569;margin-top:0.75rem}
-.blocked{filter:blur(6px);pointer-events:none;user-select:none;position:relative}
-.blocked-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:0.7rem;color:#475569;background:#0a1428;padding:4px 12px;border-radius:100px;white-space:nowrap}
+
+.articles-list{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:2rem}
+.article-tag{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:8px;padding:6px 14px;font-size:0.8rem;color:#f59e0b;font-weight:600}
+
+.paywall-overlay{background:linear-gradient(135deg,#0a1428,rgba(15,23,42,0.95));border:2px solid rgba(245,158,11,0.25);border-radius:20px;padding:2.5rem 2rem;text-align:center;margin-bottom:2rem;position:relative;overflow:hidden}
+.paywall-overlay::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(245,158,11,0.03),transparent 50%);pointer-events:none}
+.paywall-overlay .lock{font-size:2.5rem;margin-bottom:0.75rem}
+.paywall-overlay h3{font-size:1.2rem;font-weight:700;color:#f1f5f9;margin-bottom:0.5rem}
+.paywall-overlay p{color:#94a3b8;font-size:0.88rem;max-width:500px;margin:0 auto 1rem}
+.paywall-overlay .exposure{font-size:1.8rem;font-weight:800;color:#ef4444;margin:0.5rem 0}
+.paywall-cta{display:inline-block;padding:16px 48px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;font-size:1rem;text-decoration:none;transition:all 0.2s;box-shadow:0 4px 20px rgba(245,158,11,0.25)}
+.paywall-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.35);color:#070d1a}
+.blocked{filter:blur(6px);pointer-events:none;user-select:none;position:relative;margin-bottom:2rem}
 .text-muted{color:#64748b}
 </style>
 </head>
 <body>
 <div class="header-bar">
 <div class="logo">Code<span>Audit</span> Pro</div>
-<a href="/pricing" style="color:#f59e0b;text-decoration:none;font-size:0.85rem;font-weight:600">Ver planes →</a>
+<a href="/#precios" style="color:#f59e0b;text-decoration:none;font-size:0.85rem;font-weight:600">Ver planes →</a>
 </div>
 <div class="container">
 
 <h1>🔍 Resultados del análisis</h1>
-<p class="sub">Resumen ejecutivo para <strong>{{ repo_url }}</strong> — {{ email }}</p>
+<p class="sub">Resumen para <strong>{{ repo_url }}</strong> — {{ email }}</p>
 
-<div class="score-grid">
-<div class="score-card {% if severity == 'critical' %}critical{% elif severity == 'warning' %}warning{% else %}ok{% endif %}">
-<div class="num">{{ total_findings }}</div>
-<div class="label">Hallazgos Totales</div>
-</div>
-<div class="score-card critical">
-<div class="num">{{ critical_count }}</div>
-<div class="label">Críticos</div>
-</div>
-<div class="score-card {% if overall_score >= 50 %}ok{% else %}warning{% endif %}">
-<div class="num">{{ overall_score }}</div>
-<div class="label">Score NIS2</div>
-</div>
+<div class="score-circle-wrap">
+  <div class="score-circle {{ 'red' if overall_score < 30 else 'yellow' if overall_score < 60 else 'green' }}">
+    <div class="score-num">{{ overall_score }}</div>
+    <div class="score-label">/100 NIS2</div>
+  </div>
 </div>
 
-<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">🔬 Hallazgos de seguridad</h3>
-<div class="table-wrap">
+<div class="vuln-grid">
+  <div class="vuln-card critical">
+    <div class="num">{{ vuln_counts.critical }}</div>
+    <div class="label">Críticas</div>
+  </div>
+  <div class="vuln-card high">
+    <div class="num">{{ vuln_counts.high }}</div>
+    <div class="label">Altas</div>
+  </div>
+  <div class="vuln-card medium">
+    <div class="num">{{ vuln_counts.medium }}</div>
+    <div class="label">Medias</div>
+  </div>
+  <div class="vuln-card low">
+    <div class="num">{{ vuln_counts.low }}</div>
+    <div class="label">Bajas</div>
+  </div>
+</div>
+
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">🔬 Top hallazgos críticos</h3>
+<div class="findings-table">
 <table>
-<thead><tr><th>Tipo</th><th>Ubicación</th><th>Descripción</th><th>Severidad</th></tr></thead>
+<thead><tr><th>Herramienta</th><th>Archivo</th><th>Descripción</th></tr></thead>
 <tbody>
 {% for f in visible_findings %}
 <tr>
-<td>{{ f.type }}</td>
-<td style="font-family:monospace;font-size:0.78rem">{% if f.file %}{{ f.file }}:{{ f.line }}{% else %}-{% endif %}</td>
-<td>{{ f.reason[:80] }}</td>
-<td><span class="badge {{ f.severity_class }}">{{ f.severity }}</span></td>
+<td>{{ f.tool }}</td>
+<td style="font-family:monospace;font-size:0.78rem">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
+<td>{{ f.reason[:100] }}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
+</div>
+
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">📜 Artículos NIS2 en riesgo</h3>
+<div class="articles-list">
+{% for art in nis2_articles %}
+<span class="article-tag">{{ art }}</span>
+{% endfor %}
 </div>
 
 {% if hidden_count > 0 %}
 <div class="paywall-overlay">
-<div class="lock">🔒</div>
-<h3>Hay {{ hidden_count }} hallazgos adicionales ocultos</h3>
-<p>Incluyendo cumplimiento NIS2/DORA detallado, plan de remediación, informe PDF descargable y certificación blockchain.</p>
-<a class="paywall-cta" href="/create-checkout?plan=compliance_pro&demo_id={{ demo_id }}&email={{ email }}&repo_url={{ repo_url }}">
-DESBLOQUEAR INFORME COMPLETO — {{ '1.500' if plan_price else '299' }} €
-</a>
-<p class="paywall-sub">Incluye PDF · Certificación SHA-256 · Declaración de debida diligencia · Válido para auditores</p>
-</div>
-{% endif %}
-
-<h3 style="font-size:1rem;font-weight:600;margin:1.5rem 0 0.75rem;color:#e2e8f0">🛡️ Cumplimiento normativo NIS2/DORA</h3>
-<div class="table-wrap">
-<table>
-<thead><tr><th>Dimensión</th><th>Score</th><th>Estado</th></tr></thead>
-<tbody>
-{% for dim in compliance_dims %}
-<tr>
-<td>{{ dim.name }}</td>
-<td>
-<div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;max-width:200px">
-<div style="height:6px;border-radius:3px;width:{{ dim.score }}%;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981)"></div>
-</div>
-<small class="text-muted">{{ dim.score }}/100</small>
-</td>
-<td>{{ dim.status }}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
+  <div class="lock">🔒</div>
+  <h3>{{ hidden_count }} hallazgos adicionales y plan completo de remediación</h3>
+  <div class="exposure">{{ exposure_fmt }} €</div>
+  <p>Multa potencial estimada según tamaño y sector de tu empresa</p>
+  <a class="paywall-cta" href="/create-checkout?plan=compliance_pro&demo_id={{ demo_id }}&email={{ email }}&repo_url={{ repo_url }}">
+    Ver informe completo — Compliance Pro 1.500 €
+  </a>
+  <p style="color:#475569;font-size:0.72rem;margin-top:0.75rem">
+    Incluye: lista completa de hallazgos · mapa de cumplimiento por artículo NIS2 · plan de remediación · certificación SHA-256
+  </p>
 </div>
 
-{% if hidden_count > 0 %}
-<div class="blocked" style="margin:2rem 0">
-<h3 style="font-size:1rem;font-weight:600;color:#e2e8f0">📋 Plan de remediación detallado</h3>
-<p class="text-muted" style="margin-top:0.5rem">El plan completo incluye pasos concretos para cada hallazgo.</p>
-<div class="blocked-hint">🔒 Disponible en el informe completo</div>
+<div class="blocked">
+  <h3 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:0.75rem">📋 Lista completa de hallazgos</h3>
+  <div class="findings-table">
+  <table>
+  <thead><tr><th>Tipo</th><th>Severidad</th><th>Detalle</th></tr></thead>
+  <tbody>
+  {% for f in all_findings_for_blocked %}
+  <tr><td>{{ f.type }}</td><td><span class="badge {{ f.severity_class }}">{{ f.severity }}</span></td><td>{{ f.reason[:60] }}</td></tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  </div>
 </div>
 {% endif %}
 
 <div style="text-align:center;padding:2rem 0;border-top:1px solid rgba(255,255,255,0.06)">
-<p class="text-muted">CodeAudit Pro · Cumplimiento NIS2/DORA para PYMEs</p>
+  <p class="text-muted">
+    ¿Tienes preguntas?
+    <a href="mailto:ventas@codeauditpro.com" style="color:#f59e0b;font-weight:600;text-decoration:none">ventas@codeauditpro.com</a>
+    o <a href="https://calendly.com" target="_blank" style="color:#f59e0b;font-weight:600;text-decoration:none">Agendar llamada de 20 min →</a>
+  </p>
+  <p class="text-muted mt-2" style="font-size:0.75rem">CodeAudit Pro · Cumplimiento NIS2/DORA para PYMEs</p>
 </div>
 
 </div>
@@ -343,8 +368,9 @@ def demo_page():
 
 @demo_bp.route("/start", methods=["POST"])
 def start_demo():
-    repo_url = request.form.get("repo_url", "").strip()
-    email = request.form.get("email", "").strip()
+    data = request.get_json(silent=True) or request.form
+    repo_url = (data.get("repo_url") or "").strip()
+    email = (data.get("email") or "").strip()
 
     if not repo_url:
         return jsonify({"error": "URL del repositorio requerida"}), 400
@@ -461,47 +487,73 @@ def result_demo(demo_id):
 
     all_findings = []
     for s in secrets:
-        all_findings.append({"type": "🔑", "file": s.get("file", ""), "line": s.get("line", ""), "reason": s.get("reason", ""), "severity": s.get("severity", "CRITICAL"), "severity_class": "critical"})
+        all_findings.append({
+            "type": "🔑", "tool": "Secret Scanner",
+            "file": s.get("file", ""), "line": s.get("line", ""),
+            "reason": s.get("reason", ""),
+            "severity": s.get("severity", "CRITICAL"),
+            "severity_class": s.get("severity", "critical").lower()
+        })
     for v in vulnerabilities:
-        all_findings.append({"type": "📦", "file": "", "line": "", "reason": f"{v.get('name','')} @ {v.get('version','')} ({v.get('cve','')})", "severity": v.get("severity", "HIGH"), "severity_class": "high" if v.get("severity") in ("HIGH", "CRITICAL") else "medium"})
+        all_findings.append({
+            "type": "📦", "tool": "Dependency Check",
+            "file": "", "line": "",
+            "reason": f"{v.get('name','')} {v.get('version','')} ({v.get('cve','')})",
+            "severity": v.get("severity", "HIGH"),
+            "severity_class": v.get("severity", "high").lower()
+        })
     for f in sast:
-        all_findings.append({"type": "🔍", "file": f.get("file", ""), "line": f.get("line", ""), "reason": f.get("reason", ""), "severity": f.get("severity", "MEDIUM"), "severity_class": f.get("severity", "medium").lower()})
+        all_findings.append({
+            "type": "🔍", "tool": "SAST",
+            "file": f.get("file", ""), "line": f.get("line", ""),
+            "reason": f.get("reason", ""),
+            "severity": f.get("severity", "MEDIUM"),
+            "severity_class": f.get("severity", "medium").lower()
+        })
 
-    # Show only 2 findings, hide rest
+    # Vuln counts by severity
+    vuln_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for f in all_findings:
+        sev = f["severity"].lower()
+        if sev in vuln_counts:
+            vuln_counts[sev] += 1
+        elif sev == "critical":
+            vuln_counts["critical"] += 1
+
+    # Top 2 visible findings, rest hidden
     visible = all_findings[:2]
     hidden_count = max(0, len(all_findings) - 2)
 
-    critical_count = sum(1 for f in all_findings if f["severity"] in ("CRITICAL", "HIGH"))
-    total_findings = len(all_findings)
+    # NIS2 articles at risk based on findings
+    nis2_articles = ["Art.21.1", "Art.23", "Art.27", "Art.32", "Art.45"]
+    # If score is high, fewer articles
+    if overall_score >= 70:
+        nis2_articles = ["Art.21.1", "Art.23"]
+    elif overall_score >= 50:
+        nis2_articles = ["Art.21.1", "Art.23", "Art.27"]
 
-    if overall_score < 30:
-        severity = "critical"
-    elif overall_score < 60:
-        severity = "warning"
-    else:
-        severity = "ok"
-
-    compliance_dims = [
-        {"name": "Secretos y credenciales", "score": max(0, 100 - len(secrets) * 25), "status": "⚠️ Parcial" if secrets else "✅ Cumple"},
-        {"name": "Vulnerabilidades en deps", "score": max(0, 100 - len(vulnerabilities) * 15), "status": "⚠️ Parcial" if vulnerabilities else "✅ Cumple"},
-        {"name": "Seguridad del código (SAST)", "score": max(0, 100 - len(sast) * 12), "status": "⚠️ Parcial" if sast else "✅ Cumple"},
-        {"name": "Control de acceso (NIS2)", "score": overall_score, "status": "⚠️ Parcial" if overall_score < 70 else "✅ Cumple"},
-        {"name": "Resiliencia operativa (DORA)", "score": min(100, overall_score + 10), "status": "✅ Cumple" if overall_score > 50 else "⚠️ Parcial"},
-    ]
+    # Exposure estimate using calculator logic
+    FINES = {"micro": 500000, "small": 2000000, "medium": 7000000, "large": 10000000}
+    SECTOR_FACTOR = {"tech": 1.0, "finance": 1.5, "health": 1.2, "energy": 1.3, "logistics": 1.0, "retail": 0.8, "other": 0.9}
+    COMPLIANCE_PROB = {"none": 0.60, "partial": 0.35, "most": 0.15, "full": 0.05}
+    size = "medium" if hidden_count > 5 else "small"
+    sector = "tech"
+    compliance = "none" if overall_score < 30 else "partial" if overall_score < 60 else "most"
+    exposure = FINES.get(size, 1000000) * SECTOR_FACTOR.get(sector, 1.0) * COMPLIANCE_PROB.get(compliance, 0.5)
+    exposure_fmt = f"{exposure:,.0f}"
 
     return render_template_string(
         RESULT_PAGE,
         repo_url=repo_url,
         email=email,
         demo_id=demo_id,
-        total_findings=total_findings,
-        critical_count=critical_count,
         overall_score=overall_score,
-        severity=severity,
+        vuln_counts=vuln_counts,
         visible_findings=visible,
         hidden_count=hidden_count,
-        compliance_dims=compliance_dims,
-        plan_price=1500,
+        all_findings_for_blocked=all_findings,
+        nis2_articles=nis2_articles,
+        exposure_fmt=exposure_fmt,
     )
 
 
