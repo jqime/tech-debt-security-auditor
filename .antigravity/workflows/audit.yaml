@@ -13,7 +13,13 @@ steps:
     command: run --model opencode/zen "Analiza el repositorio. Mide la complejidad ciclomática y líneas duplicadas. Devuelve un JSON con: {\"average_complexity\": 0.0, \"duplicated_lines\": 0}"
     output: reports/debt-report.json
 
+  - name: docker_security
+    tool: opencode
+    model: opencode/deepseek-v4-flash-free
+    command: run --model opencode/deepseek-v4-flash-free "Analiza el repositorio. Encuentra Dockerfiles y busca problemas de seguridad como uso de usuario root, imágenes base obsoletas o secretos hardcodeados. Devuelve un JSON con: {\"issues\": [{\"file\": \"Dockerfile\", \"instruction\": \"USER root\", \"severity\": \"HIGH\", \"reason\": \"Running as root\"}]}"
+    output: reports/docker-report.json
+
   - name: generate_report
     tool: script
     command: python3 scripts/generate_report.py
-    depends_on: [security_scan, debt_measure]
+    depends_on: [security_scan, debt_measure, docker_security]
