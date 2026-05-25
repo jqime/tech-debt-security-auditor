@@ -13,7 +13,7 @@ def run_command(cmd, timeout=120):
 
 def main():
     repo_path = sys.argv[1] if len(sys.argv) > 1 else "."
-    model = sys.argv[2] if len(sys.argv) > 2 else "opencode/zen"
+    model = sys.argv[2] if len(sys.argv) > 2 else "opencode/deepseek-v4-flash-free"
     
     print(f"🚀 Iniciando Auditoria para: {repo_path}")
     print(f"🤖 Usando modelo: {model}")

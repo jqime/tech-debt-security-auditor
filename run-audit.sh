@@ -5,7 +5,7 @@ set -e
 # Usage: ./run-audit.sh [repo_url_or_local_path] [model]
 
 TARGET=${1:-"https://github.com/octocat/Hello-World"}
-MODEL=${2:-"opencode/zen"}
+MODEL=${2:-"opencode/deepseek-v4-flash-free"}
 
 # Establish absolute directory path of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
