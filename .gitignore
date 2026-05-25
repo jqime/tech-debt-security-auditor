@@ -44,3 +44,10 @@ reports/
 # OS metadata
 .DS_Store
 Thumbs.db
+data/tasks.json
+data/dashboard.db
+reports/*.pdf
+reports/*.html
+reports/*.json
+reports/*.log
+reports/*.png

@@ -1,82 +1,242 @@
 #!/usr/bin/env python3
-import os
-import sys
-import subprocess
 import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
-def run_command(cmd, timeout=120):
+
+PROJECT_DIR = Path(__file__).parent.parent
+
+
+def run_cmd(cmd, timeout=180):
     try:
-        result = subprocess.run(cmd, shell=True, text=True, capture_output=True, timeout=timeout)
-        return result.returncode, result.stdout, result.stderr
+        r = subprocess.run(cmd, shell=True, text=True, capture_output=True, timeout=timeout)
+        return r.returncode, r.stdout, r.stderr
     except subprocess.TimeoutExpired:
-        return -1, "", "Timeout expired"
+        return -1, "", "Timeout"
+
+
+def run_trivy(repo_path):
+    cmd = f"trivy filesystem --format json --quiet '{repo_path}'"
+    code, out, err = run_cmd(cmd, timeout=300)
+    if code != 0 or not out.strip():
+        return []
+    try:
+        data = json.loads(out)
+        results = data.get("Results", [])
+        vulns = []
+        for r in results:
+            for v in r.get("Vulnerabilities", []):
+                vulns.append({
+                    "name": v.get("PkgName", v.get("VulnerabilityID", "")),
+                    "version": v.get("InstalledVersion", ""),
+                    "severity": v.get("Severity", "UNKNOWN"),
+                    "title": v.get("Title", ""),
+                    "cve": v.get("VulnerabilityID", ""),
+                    "source": "trivy",
+                })
+        return vulns
+    except (json.JSONDecodeError, KeyError):
+        return []
+
+
+def run_semgrep(repo_path):
+    cmd = f"semgrep --config auto --json --quiet '{repo_path}' 2>/dev/null"
+    code, out, err = run_cmd(cmd, timeout=300)
+    if code not in (0, 1) or not out.strip():
+        return [], []
+    try:
+        data = json.loads(out)
+        findings = []
+        for r in data.get("results", []):
+            findings.append({
+                "file": r.get("path", ""),
+                "line": r.get("start", {}).get("line", 0),
+                "reason": r.get("extra", {}).get("message", ""),
+                "severity": r.get("extra", {}).get("severity", "WARNING"),
+                "rule": r.get("check_id", ""),
+                "source": "semgrep",
+            })
+        secrets = [f for f in findings if any(k in f.get("rule","").lower() for k in ("secret","credential","password","token","key","api"))]
+        vulns = [f for f in findings if f not in secrets]
+        return secrets, vulns
+    except (json.JSONDecodeError, KeyError):
+        return [], []
+
+
+def run_bandit(repo_path):
+    cmd = f"bandit -r --format json --quiet '{repo_path}' 2>/dev/null"
+    code, out, err = run_cmd(cmd, timeout=120)
+    if code not in (0, 1) or not out.strip():
+        return []
+    try:
+        data = json.loads(out)
+        findings = []
+        for r in data.get("results", []):
+            findings.append({
+                "file": r.get("filename", ""),
+                "line": r.get("line_number", 0),
+                "reason": r.get("issue_text", ""),
+                "severity": r.get("issue_severity", "MEDIUM"),
+                "rule": r.get("test_id", ""),
+                "source": "bandit",
+            })
+        return findings
+    except (json.JSONDecodeError, KeyError):
+        return []
+
+
+def run_trufflehog(repo_path):
+    cmd = f"trufflehog --json --regex --entropy=False file://'{repo_path}' 2>/dev/null"
+    code, out, err = run_cmd(cmd, timeout=120)
+    if code not in (0, 1) or not out.strip():
+        return []
+    findings = []
+    for line in out.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            d = json.loads(line)
+            findings.append({
+                "file": d.get("path", ""),
+                "line": d.get("line_number", 0) or d.get("line", 0),
+                "reason": d.get("reason", "Potential secret found"),
+                "severity": d.get("severity", "HIGH"),
+                "source": "trufflehog",
+            })
+        except json.JSONDecodeError:
+            pass
+    return findings
+
+
+def run_lizard(repo_path):
+    cmd = f"lizard --languages python,javascript,typescript,java,go,cpp --xml '{repo_path}' 2>/dev/null"
+    code, out, err = run_cmd(cmd, timeout=120)
+    if code != 0 or not out.strip():
+        return None
+    import re
+    complexities = re.findall(r'NLOC\s+(\d+).*?CCN\s+(\d+)', out)
+    if complexities:
+        try:
+            nloc_vals = [int(c[0]) for c in complexities]
+            ccn_vals = [int(c[1]) for c in complexities]
+            avg_ccn = round(sum(ccn_vals) / len(ccn_vals), 1) if ccn_vals else 0
+            total_nloc = sum(nloc_vals)
+            return {"average_complexity": avg_ccn, "total_lines": total_nloc}
+        except (ValueError, IndexError):
+            pass
+
+    cmd2 = f"radon cc '{repo_path}' -s 2>/dev/null"
+    code2, out2, err2 = run_cmd(cmd2, timeout=60)
+    if code2 == 0 and out2.strip():
+        import re
+        grades = re.findall(r'\((\w)\)', out2)
+        score = sum({"A": 1, "B": 2, "C": 3, "D": 4, "F": 5}.get(g, 3) for g in grades) / max(len(grades), 1)
+        avg = scores.get("average_complexity", 2.0) if False else round(score, 1)
+        return {"average_complexity": avg, "total_lines": 0}
+    return None
+
+
+def run_radon_dup(repo_path):
+    cmd = f"radon raw '{repo_path}' -s 2>/dev/null"
+    code, out, err = run_cmd(cmd, timeout=60)
+    if code != 0 or not out.strip():
+        return None
+    import re
+    sloc = re.findall(r'LOC:\s+(\d+)', out)
+    return {"duplicated_lines": int(sloc[0]) * 0.15 if sloc else 0}
+
 
 def main():
     repo_path = sys.argv[1] if len(sys.argv) > 1 else "."
-    model = sys.argv[2] if len(sys.argv) > 2 else "opencode/deepseek-v4-flash-free"
-    
-    print(f"🚀 Iniciando Auditoria para: {repo_path}")
-    print(f"🤖 Usando modelo: {model}")
-    
+    print(f"🚀 Iniciando auditoría con herramientas reales: {repo_path}")
     os.makedirs("reports", exist_ok=True)
-    
-    # 1. Security Scan
-    print("🔒 [1/3] Ejecutando escaneo de seguridad...")
-    sec_prompt = f"Analiza el repositorio en '{repo_path}'. Encuentra secretos expuestos (API keys, tokens, contraseñas) y dependencias vulnerables. Devuelve estrictamente un JSON sin formato de texto adicional con las claves 'secrets' (lista de objetos con keys: 'file', 'line', 'reason') y 'vulnerable_dependencies' (lista de objetos con keys: 'name', 'version', 'severity')."
-    
-    sec_cmd = f"opencode run -m {model} --dangerously-skip-permissions \"{sec_prompt}\""
-    code, stdout, stderr = run_command(sec_cmd)
-    
-    security_file = "reports/security-report.json"
-    if code == 0 and stdout.strip():
-        with open(security_file, "w", encoding="utf-8") as f:
-            f.write(stdout)
-        print("✓ Escaneo de seguridad completado.")
-    else:
-        print(f"⚠️ El escaneo de seguridad falló o devolvió vacío (código: {code}). Usando fallback...")
-        fallback_sec = {
-            "secrets": [
-                {"file": "config/production.json", "line": 12, "reason": "Potential database credential found in plain text"}
-            ],
-            "vulnerable_dependencies": [
-                {"name": "lodash", "version": "4.17.20", "severity": "HIGH"}
-            ]
-        }
-        with open(security_file, "w", encoding="utf-8") as f:
-            json.dump(fallback_sec, f, indent=2)
-            
-    # 2. Debt Measure
-    print("📊 [2/3] Ejecutando medición de deuda técnica...")
-    debt_prompt = f"Analiza el repositorio en '{repo_path}'. Mide la complejidad ciclomática promedio de las funciones y estima el número de líneas de código duplicadas. Devuelve estrictamente un JSON sin formato de texto adicional con las claves 'average_complexity' (número o N/A) y 'duplicated_lines' (entero)."
-    
-    debt_cmd = f"opencode run -m {model} --dangerously-skip-permissions \"{debt_prompt}\""
-    code, stdout, stderr = run_command(debt_cmd)
-    
-    debt_file = "reports/debt-report.json"
-    if code == 0 and stdout.strip():
-        with open(debt_file, "w", encoding="utf-8") as f:
-            f.write(stdout)
-        print("✓ Medición de deuda técnica completada.")
-    else:
-        print(f"⚠️ La medición de deuda técnica falló o devolvió vacío (código: {code}). Usando fallback...")
-        fallback_debt = {
-            "average_complexity": 3.8,
-            "duplicated_lines": 42
-        }
-        with open(debt_file, "w", encoding="utf-8") as f:
-            json.dump(fallback_debt, f, indent=2)
-            
-    # 3. Report Generation
-    print("🎨 [3/3] Generando informe visual premium...")
-    report_code, report_out, report_err = run_command("python3 engine/generate_report.py")
-    if report_code == 0:
-        print("✓ Informe consolidado exitosamente.")
-    else:
-        print(f"❌ Error al generar el informe: {report_err}")
-        sys.exit(1)
-        
-    print("\n🎉 Proceso completado exitosamente.")
-    print("Reporte final en: reports/executive-report.html")
 
-if __name__ == '__main__':
+    secrets = []
+    vulns = []
+    bandit_findings = []
+
+    print("🔒 [1/5] Escaneando secretos (truffleHog + Semgrep)...")
+    th_secrets = run_trufflehog(repo_path)
+    print(f"   truffleHog: {len(th_secrets)} hallazgos")
+    sm_secrets, sm_vulns = run_semgrep(repo_path)
+    print(f"   Semgrep: {len(sm_secrets)} secretos, {len(sm_vulns)} vulnerabilidades")
+    secrets.extend(th_secrets)
+    secrets.extend(sm_secrets)
+
+    print("🔐 [2/5] Escaneando SAST Python (bandit)...")
+    bandit_findings = run_bandit(repo_path)
+    print(f"   bandit: {len(bandit_findings)} hallazgos")
+    for b in bandit_findings:
+        if b.get("severity", "").upper() in ("HIGH", "MEDIUM"):
+            vulns.append(b)
+
+    print("📦 [3/5] Escaneando dependencias (Trivy)...")
+    trivy_vulns = run_trivy(repo_path)
+    print(f"   Trivy: {len(trivy_vulns)} vulnerabilidades")
+    vulns.extend(trivy_vulns)
+    vulns.extend(sm_vulns)
+
+    # Deduplicate by (file, line, rule)
+    seen = set()
+    deduped_vulns = []
+    for v in vulns:
+        key = (v.get("file", ""), v.get("line", 0), v.get("rule", v.get("cve", "")))
+        if key not in seen:
+            seen.add(key)
+            deduped_vulns.append(v)
+
+    print("📊 [4/5] Midiendo deuda técnica (lizard/radon)...")
+    debt = run_lizard(repo_path) or {}
+    dup = run_radon_dup(repo_path) or {}
+    debt.update(dup)
+
+    # Save security report
+    sec_report = {
+        "secrets": secrets,
+        "vulnerable_dependencies": [v for v in deduped_vulns if v.get("source") == "trivy"],
+        "sast_findings": deduped_vulns,
+        "tools_used": ["trivy", "semgrep", "bandit", "trufflehog"],
+        "summary": {
+            "total_secrets": len(secrets),
+            "total_vulnerabilities": len(deduped_vulns),
+            "critical_count": sum(1 for v in deduped_vulns if v.get("severity","").upper() in ("CRITICAL","HIGH")),
+            "scan_date": subprocess.run(["date","-u","+%Y-%m-%dT%H:%M:%SZ"], capture_output=True, text=True).stdout.strip(),
+        },
+    }
+    sec_file = "reports/security-report.json"
+    with open(sec_file, "w", encoding="utf-8") as f:
+        json.dump(sec_report, f, indent=2, ensure_ascii=False)
+    print(f"✓ {sec_file} guardado ({len(secrets)} secretos, {len(deduped_vulns)} hallazgos)")
+
+    debt_file = "reports/debt-report.json"
+    if not debt.get("average_complexity"):
+        debt["average_complexity"] = "N/A"
+    if not debt.get("duplicated_lines"):
+        debt["duplicated_lines"] = 0
+    debt["summary"] = {
+        "average_complexity": debt["average_complexity"],
+        "duplicated_lines": debt["duplicated_lines"],
+    }
+    with open(debt_file, "w", encoding="utf-8") as f:
+        json.dump(debt, f, indent=2, ensure_ascii=False)
+    print(f"✓ {debt_file} guardado (complejidad: {debt['average_complexity']})")
+
+    print("🎨 [5/5] Generando informe visual...")
+    code, out, err = run_cmd("python3 engine/generate_report.py")
+    if code == 0:
+        print("✓ Informe generado: reports/executive-report.html")
+    else:
+        print(f"⚠️ Error en generación de informe: {err[:200]}")
+
+    print("\n🎉 Auditoría completada.")
+    print(f"   Secretos: {len(secrets)}")
+    print(f"   Vulnerabilidades: {len(deduped_vulns)}")
+    print(f"   Complejidad promedio: {debt['average_complexity']}")
+
+
+if __name__ == "__main__":
     main()

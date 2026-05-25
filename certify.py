@@ -28,7 +28,7 @@ def try_opentimestamps(hash_hex: str) -> str | None:
         )
         if result.returncode == 0:
             return "ots_stamped"
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError, OSError):
         pass
     print("  ℹ️  OpenTimestamps CLI no instalado. Skipping blockchain anchor.")
     return None

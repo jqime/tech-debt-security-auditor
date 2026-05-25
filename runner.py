@@ -70,16 +70,82 @@ def process_task(task: dict) -> bool:
     print(f"  ✓ Auditoría completada")
 
     report_path = PROJECT_DIR / "reports" / "executive-report.html"
-    if report_path.exists():
-        email_script = PROJECT_DIR / "email_sender.py"
-        if email_script.exists():
-            subprocess.run(
-                [sys.executable, str(email_script),
-                 "--to", task["customer_email"],
-                 "--subject", f"Informe de auditoría - {task['repo_url']}",
-                 "--attach", str(report_path)],
-                cwd=str(PROJECT_DIR),
-            )
+    compliance_html = PROJECT_DIR / "reports" / "compliance-nis2.html"
+    compliance_pdf = PROJECT_DIR / "reports" / "compliance-nis2.pdf"
+
+    # Generate compliance report
+    print("  📋 Generando informe de cumplimiento normativo...")
+    subprocess.run(
+        [sys.executable, str(PROJECT_DIR / "compliance_report.py")],
+        cwd=str(PROJECT_DIR),
+        capture_output=True, timeout=120,
+    )
+
+    if compliance_pdf.exists():
+        print(f"  ✓ Compliance PDF generado ({compliance_pdf})")
+
+    # Send sales email with compliance demo
+    email_script = PROJECT_DIR / "email_sender.py"
+    if email_script.exists():
+        is_free_plan = task.get("plan_type") in ("gratuito", "auditoria_unica") or not task.get("plan_type")
+        plan_label = "GRATUITO" if is_free_plan else task.get("plan_type", "auditoria_unica")
+
+        compliance_score = ""
+        try:
+            if compliance_html.exists():
+                import re
+                m = re.search(r'overall-score[^>]*>(\d+)', compliance_html.read_text(encoding="utf-8"))
+                if m:
+                    compliance_score = m.group(1)
+        except Exception:
+            pass
+
+        sales_body_html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
+<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;padding:30px;">
+    <h2 style="color:#6366f1;">🛡️ CodeAudit Pro — Informe de Auditoría</h2>
+    <p>Estimado cliente,</p>
+    <p>Adjuntamos el informe de auditoría de seguridad y cumplimiento normativo de <strong>{task['repo_url']}</strong>.</p>
+    <p><strong>Plan utilizado:</strong> {plan_label}</p>
+    {f'<p><strong>Score de cumplimiento NIS2/DORA:</strong> {compliance_score}/100</p>' if compliance_score else ''}
+
+    <div style="background:#f0f0ff;border-radius:8px;padding:20px;margin:20px 0;">
+        <h3 style="color:#4338ca;margin-top:0;">📋 ¿Necesitas cumplir con NIS2 o DORA?</h3>
+        <p>Con <strong>CodeAudit Pro Compliance</strong> obtienes:</p>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Informe completo NIS2 + DORA</td></tr>
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Certificación blockchain (hash + QR)</td></tr>
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Declaración de debida diligencia para auditores</td></tr>
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ PDF descargable</td></tr>
+            <tr><td style="padding:8px 0;">✅ Integración con Jira para remediation</td></tr>
+        </table>
+        <p style="margin-top:15px;text-align:center;">
+            <a href="https://codeauditpro.com/#contacto" style="display:inline-block;background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Solicitar Compliance Pro (1.500 €)</a>
+        </p>
+        <p style="text-align:center;margin:5px 0 0;font-size:12px;color:#94a3b8;">Plan Enterprise desde 10.000 €/año — <a href="https://codeauditpro.com/#contacto">Contactar Ventas</a></p>
+    </div>
+
+    <p>Si tienes cualquier pregunta, responde a este correo.</p>
+    <p style="margin-top:30px;color:#94a3b8;font-size:12px;">
+        CodeAudit Pro · Auditoría de código para PYMES<br>
+        Cumplimiento NIS2 · DORA · GDPR
+    </p>
+</div></body></html>"""
+
+        # Save body to temp file for email_sender
+        body_file = PROJECT_DIR / "reports" / "_sales_email.html"
+        body_file.write_text(sales_body_html, encoding="utf-8")
+
+        attach = str(compliance_pdf) if compliance_pdf.exists() else (str(compliance_html) if compliance_html.exists() else str(report_path))
+        subprocess.run(
+            [sys.executable, str(email_script),
+             "--to", task["customer_email"],
+             "--subject", f"CodeAudit Pro — Informe y Cumplimiento Normativo ({task['repo_url']})",
+             "--body", str(body_file),
+             "--attach", attach],
+            cwd=str(PROJECT_DIR),
+        )
 
     return True
 

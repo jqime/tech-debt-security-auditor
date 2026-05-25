@@ -28,7 +28,7 @@ echo ""
 echo "📊 [4/5] Resumen de cumplimiento..."
 echo ""
 if [ -f reports/compliance-nis2.html ]; then
-    SCORE=$(grep -oP 'overall-score[^>]*>(\d+)' reports/compliance-nis2.html 2>/dev/null | grep -oP '\d+' || echo "N/A")
+    SCORE=$(grep -oP 'overall-score[^>]*>\K(\d+)' reports/compliance-nis2.html 2>/dev/null || echo "N/A")
     echo "   Score de cumplimiento global: $SCORE/100"
 fi
 echo ""
@@ -36,13 +36,13 @@ echo ""
 # 5. Mostrar archivos generados
 echo "📁 [5/5] Archivos generados:"
 echo ""
-echo "   📈 Informe técnico:      reports/executive-report.html"
-echo "   📋 Compliance NIS2/DORA: reports/compliance-nis2.html"
-echo "   🔏 Hash log:             reports/hashes.log"
-echo "   📱 QR verificación:      reports/verify-qr.png"
+echo "   📈 Informe técnico:        reports/executive-report.html"
+echo "   📋 Compliance NIS2/DORA:   reports/compliance-nis2.html"
+echo "   📋 Compliance PDF (env):   reports/compliance-nis2.pdf"
+echo "   🔏 Hash log:               reports/hashes.log"
+echo "   📱 QR verificación:        reports/verify-qr.png"
 echo ""
 
-# Mostrar hash
 if [ -f reports/hashes.log ]; then
     echo "   🔐 Último hash registrado:"
     tail -1 reports/hashes.log
@@ -56,4 +56,5 @@ echo ""
 echo "   Para abrir los informes:"
 echo "   open reports/executive-report.html"
 echo "   open reports/compliance-nis2.html"
+echo "   open reports/compliance-nis2.pdf"
 echo ""
