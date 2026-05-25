@@ -120,18 +120,15 @@ def init_db():
             updated_at TEXT DEFAULT (datetime('now'))
         );
     """
-    if USE_PG:
-        pg_sql = sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
-        pg_sql = pg_sql.replace("datetime('now')", "NOW()")
-        for stmt in pg_sql.split(";"):
-            s = stmt.strip()
-            if s and s.upper().startswith("CREATE"):
-                try:
-                    db.execute(s + ";")
-                    db.commit()
-                except Exception:
-                    db.conn.rollback()
-    else:
-        db.execute(sql)
-        db.commit()
+    for stmt in sql.split(";"):
+        s = stmt.strip()
+        if s:
+            if USE_PG:
+                s = s.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+                s = s.replace("datetime('now')", "NOW()")
+            try:
+                db.execute(s + ";")
+                db.commit()
+            except Exception:
+                db.conn.rollback()
     db.close()
