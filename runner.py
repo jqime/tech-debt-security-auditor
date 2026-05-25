@@ -1,63 +1,100 @@
 #!/usr/bin/env python3
-import json
 import os
 import subprocess
 import sys
+import threading
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
+from app.db import get_db
+
 PROJECT_DIR = Path(__file__).parent
-DATA_DIR = PROJECT_DIR / "data"
-TASKS_FILE = DATA_DIR / "tasks.json"
+MAX_CONCURRENT = int(os.getenv("RUNNER_CONCURRENCY", "3"))
 SLEEP_INTERVAL = int(os.getenv("RUNNER_INTERVAL", "30"))
 
+_semaphore = threading.Semaphore(MAX_CONCURRENT)
+_lock = threading.Lock()
 
-def ensure_tasks_file():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if not TASKS_FILE.exists():
-        TASKS_FILE.write_text("[]", encoding="utf-8")
-
-
-def load_tasks() -> list[dict]:
-    ensure_tasks_file()
-    try:
-        return json.loads(TASKS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return []
+TASK_STATUSES = ("pending", "running", "done", "failed")
 
 
-def save_tasks(tasks: list[dict]):
-    TASKS_FILE.write_text(json.dumps(tasks, indent=2, ensure_ascii=False), encoding="utf-8")
+def add_task(
+    repo_url: str,
+    customer_email: str = "",
+    plan_type: str = "auditoria_unica",
+    user_id: int = 0,
+    demo_id: str = "",
+) -> dict:
+    db = get_db()
+    audit_dir = f"/tmp/audit-{uuid.uuid4()}"
+    db.execute(
+        """INSERT INTO tasks (user_id, repo_url, customer_email, plan_type, status, audit_dir, demo_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, repo_url, customer_email, plan_type, "pending", audit_dir, demo_id),
+    )
+    db.commit()
+    task_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    db.close()
+    print(f"✓ Tarea #{task_id} añadida: {repo_url}")
+    return {"id": task_id, "repo_url": repo_url, "status": "pending", "audit_dir": audit_dir}
 
 
-def add_task(repo_url: str, customer_email: str, plan_type: str = "auditoria_unica", user_id: int = 0) -> dict:
-    ensure_tasks_file()
-    tasks = load_tasks()
-    task = {
-        "id": len(tasks) + 1,
-        "user_id": user_id,
-        "repo_url": repo_url,
-        "customer_email": customer_email,
-        "plan_type": plan_type,
-        "status": "pending",
-        "created_at": datetime.now().isoformat(),
-        "completed_at": None,
-    }
-    tasks.append(task)
-    save_tasks(tasks)
-    print(f"✓ Tarea #{task['id']} añadida: {repo_url}")
-    return task
+def get_pending_tasks() -> list[dict]:
+    db = get_db()
+    rows = db.execute(
+        "SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?",
+        (MAX_CONCURRENT,),
+    ).fetchall()
+    db.close()
+    return [dict(r) for r in rows]
+
+
+def update_task(task_id: int, status: str, error: str = ""):
+    db = get_db()
+    if status == "running":
+        db.execute(
+            "UPDATE tasks SET status = ?, started_at = datetime('now') WHERE id = ?",
+            (status, task_id),
+        )
+    elif status in ("done", "failed"):
+        db.execute(
+            "UPDATE tasks SET status = ?, finished_at = datetime('now'), error = ? WHERE id = ?",
+            (status, error, task_id),
+        )
+    else:
+        db.execute("UPDATE tasks SET status = ? WHERE id = ?", (status, task_id))
+    db.commit()
+    db.close()
 
 
 def process_task(task: dict) -> bool:
+    task_id = task["id"]
+    repo_url = task["repo_url"]
+    audit_dir = task.get("audit_dir", f"/tmp/audit-{uuid.uuid4()}")
+
+    update_task(task_id, "running")
+
     print(f"\n{'='*60}")
-    print(f"  Ejecutando tarea #{task['id']}: {task['repo_url']}")
-    print(f"  Cliente: {task['customer_email']}")
+    print(f"  Ejecutando tarea #{task_id}: {repo_url}")
+    print(f"  Audit dir: {audit_dir}")
     print(f"{'='*60}")
 
+    # Clonar repo si es URL
+    is_remote = repo_url.startswith("http") or repo_url.startswith("git@")
+    target_path = audit_dir if is_remote else repo_url
+
+    if is_remote:
+        clone_cmd = ["git", "clone", "--depth", "1", repo_url, audit_dir]
+        clone_result = subprocess.run(clone_cmd, capture_output=True, text=True, timeout=120)
+        if clone_result.returncode != 0:
+            print(f"  ❌ Error al clonar: {clone_result.stderr[:300]}")
+            update_task(task_id, "failed", clone_result.stderr[:500])
+            return False
+
     result = subprocess.run(
-        ["./run_audit.sh", task["repo_url"]],
+        [sys.executable, "engine/run.py", target_path, "--audit-id", str(task_id)],
         capture_output=True, text=True, timeout=600,
         cwd=str(PROJECT_DIR),
     )
@@ -65,6 +102,7 @@ def process_task(task: dict) -> bool:
     if result.returncode != 0:
         print(f"  ❌ Falló la auditoría (código {result.returncode})")
         print(f"  Error: {result.stderr[:500]}")
+        update_task(task_id, "failed", result.stderr[:500])
         return False
 
     print(f"  ✓ Auditoría completada")
@@ -77,139 +115,186 @@ def process_task(task: dict) -> bool:
     print("  📋 Generando informe de cumplimiento normativo...")
     subprocess.run(
         [sys.executable, str(PROJECT_DIR / "compliance_report.py")],
-        cwd=str(PROJECT_DIR),
-        capture_output=True, timeout=120,
+        cwd=str(PROJECT_DIR), capture_output=True, timeout=120,
     )
 
     if compliance_pdf.exists():
-        print(f"  ✓ Compliance PDF generado ({compliance_pdf})")
+        print(f"  ✓ Compliance PDF generado")
 
-    # Send sales email with compliance demo
+    # Send email
     email_script = PROJECT_DIR / "email_sender.py"
-    if email_script.exists():
-        is_free_plan = task.get("plan_type") in ("gratuito", "auditoria_unica") or not task.get("plan_type")
-        plan_label = "GRATUITO" if is_free_plan else task.get("plan_type", "auditoria_unica")
-
-        compliance_score = ""
-        try:
-            if compliance_html.exists():
-                import re
-                m = re.search(r'overall-score[^>]*>(\d+)', compliance_html.read_text(encoding="utf-8"))
-                if m:
-                    compliance_score = m.group(1)
-        except Exception:
-            pass
+    if email_script.exists() and task.get("customer_email"):
+        customer_email = task["customer_email"]
+        dashboard_token = f"dash_{os.urandom(8).hex()}"
+        domain = os.getenv("DOMAIN", "http://localhost:5001")
+        dashboard_url = f"{domain}/dashboard?token={dashboard_token}&uid={task.get('user_id', 0)}"
 
         sales_body_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
 <div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;padding:30px;">
-    <h2 style="color:#6366f1;">🛡️ CodeAudit Pro — Informe de Auditoría</h2>
+    <h2 style="color:#6366f1;">📄 CodeAudit Pro — Informe de Auditoría</h2>
     <p>Estimado cliente,</p>
-    <p>Adjuntamos el informe de auditoría de seguridad y cumplimiento normativo de <strong>{task['repo_url']}</strong>.</p>
-    <p><strong>Plan utilizado:</strong> {plan_label}</p>
-    {f'<p><strong>Score de cumplimiento NIS2/DORA:</strong> {compliance_score}/100</p>' if compliance_score else ''}
+    <p>Adjuntamos el informe de auditoría de seguridad y cumplimiento normativo de <strong>{repo_url}</strong>.</p>
 
-    <div style="background:#f0f0ff;border-radius:8px;padding:20px;margin:20px 0;">
-        <h3 style="color:#4338ca;margin-top:0;">📋 ¿Necesitas cumplir con NIS2 o DORA?</h3>
-        <p>Con <strong>CodeAudit Pro Compliance</strong> obtienes:</p>
-        <table style="width:100%;border-collapse:collapse;">
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Informe completo NIS2 + DORA</td></tr>
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Certificación blockchain (hash + QR)</td></tr>
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ Declaración de debida diligencia para auditores</td></tr>
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:8px 0;">✅ PDF descargable</td></tr>
-            <tr><td style="padding:8px 0;">✅ Integración con Jira para remediation</td></tr>
-        </table>
-        <p style="margin-top:15px;text-align:center;">
-            <a href="/try-now" style="display:inline-block;background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Probar demo gratuita</a>
+    <h3 style="color:#1e293b;">Informe ejecutivo</h3>
+    <p>Puedes consultar los resultados detallados en tu panel privado.</p>
+
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:20px 0;">
+        <h3 style="color:#16a34a;margin-top:0;">🔑 Acceso al panel de control</h3>
+        <p><strong>Email:</strong> {customer_email}</p>
+        <p style="text-align:center;margin:16px 0;">
+            <a href="{dashboard_url}" style="display:inline-block;background:#16a34a;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Acceder al Dashboard</a>
         </p>
-        <table style="width:100%;margin-top:15px;border-collapse:collapse;font-size:12px;">
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:4px 8px;">Professional</td><td style="padding:4px 8px;">9.900 €/año</td><td style="padding:4px 8px;">10 repos, informes mensuales</td></tr>
-            <tr style="border-bottom:1px solid #ddd;"><td style="padding:4px 8px;">Enterprise</td><td style="padding:4px 8px;">29.900 €/año</td><td style="padding:4px 8px;">50 repos, SIEM, white-label, 24/7</td></tr>
-            <tr><td style="padding:4px 8px;">Custom</td><td style="padding:4px 8px;">Bajo demanda</td><td style="padding:4px 8px;">On-premise, SLA dedicado</td></tr>
-        </table>
-        <p style="text-align:center;margin:5px 0 0;font-size:12px;color:#94a3b8;"><a href="/terms" style="color:#94a3b8;">Términos</a> · <a href="/privacy" style="color:#94a3b8;">Privacidad</a></p>
     </div>
 
-    <p>Si tienes cualquier pregunta, responde a este correo.</p>
     <p style="margin-top:30px;color:#94a3b8;font-size:12px;">
-        CodeAudit Pro · Auditoría de código para PYMES<br>
-        Cumplimiento NIS2 · DORA · GDPR
+        CodeAudit Pro · Cumplimiento NIS2 · DORA · GDPR<br>
+        {domain}
     </p>
 </div></body></html>"""
 
-        # Save body to temp file for email_sender
-        body_file = PROJECT_DIR / "reports" / "_sales_email.html"
+        body_file = PROJECT_DIR / "reports" / "_delivery_email.html"
         body_file.write_text(sales_body_html, encoding="utf-8")
 
-        attach = str(compliance_pdf) if compliance_pdf.exists() else (str(compliance_html) if compliance_html.exists() else str(report_path))
-        subprocess.run(
-            [sys.executable, str(email_script),
-             "--to", task["customer_email"],
-             "--subject", f"CodeAudit Pro — Informe y Cumplimiento Normativo ({task['repo_url']})",
-             "--body", str(body_file),
-             "--attach", attach],
-            cwd=str(PROJECT_DIR),
-        )
+        attachments = []
+        if compliance_pdf.exists():
+            attachments.extend(["--attach", str(compliance_pdf)])
+        if report_path.exists():
+            attachments.extend(["--attach", str(report_path)])
 
+        cmd = [
+            sys.executable, str(email_script),
+            "--to", customer_email,
+            "--subject", f"CodeAudit Pro — Informe de seguridad y cumplimiento ({repo_url})",
+            "--body", str(body_file),
+        ] + attachments
+        subprocess.run(cmd, cwd=str(PROJECT_DIR))
+
+    # Clean up cloned repo
+    if is_remote:
+        subprocess.run(["rm", "-rf", audit_dir])
+
+    update_task(task_id, "done")
     return True
 
 
 def process_pending_tasks():
-    tasks = load_tasks()
-    pending = [t for t in tasks if t["status"] == "pending"]
-    if not pending:
-        return
-
-    print(f"\n📋 {len(pending)} tarea(s) pendiente(s) en cola")
-    for task in pending:
-        success = process_task(task)
-        task["status"] = "completed" if success else "failed"
-        task["completed_at"] = datetime.now().isoformat()
-        save_tasks(tasks)
+    if _semaphore.acquire(blocking=False):
+        try:
+            tasks = get_pending_tasks()
+            if not tasks:
+                return
+            print(f"\n📋 {len(tasks)} tarea(s) pendiente(s) en cola (máx {MAX_CONCURRENT} concurrentes)")
+            threads = []
+            for task in tasks:
+                t = threading.Thread(target=process_task, args=(task,))
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+        finally:
+            _semaphore.release()
+    else:
+        print(f"  ⏳ Semáforo ocupado ({MAX_CONCURRENT} procesos ya activos)")
 
 
 def list_tasks(status: str | None = None):
-    tasks = load_tasks()
+    db = get_db()
     if status:
-        tasks = [t for t in tasks if t["status"] == status]
+        rows = db.execute(
+            "SELECT * FROM tasks WHERE status = ? ORDER BY created_at DESC", (status,)
+        ).fetchall()
+    else:
+        rows = db.execute("SELECT * FROM tasks ORDER BY created_at DESC").fetchall()
+    db.close()
 
     print(f"\n{'='*70}")
-    print(f"  TAREAS ({len(tasks)})")
+    print(f"  TAREAS ({len(rows)})")
     print(f"{'='*70}")
-    if not tasks:
+    if not rows:
         print("  (no hay tareas)")
         return
 
-    for t in tasks:
-        icon = {"pending": "⏳", "completed": "✅", "failed": "❌"}.get(t["status"], "❓")
+    for r in rows:
+        t = dict(r)
+        icon = {"pending": "⏳", "running": "🔄", "done": "✅", "failed": "❌"}.get(t["status"], "❓")
         print(f"\n  {icon} #{t['id']} - {t['repo_url']}")
-        print(f"     Cliente: {t['customer_email']}")
-        print(f"     Plan:    {t['plan_type']}")
+        print(f"     Cliente: {t.get('customer_email', '-')}")
+        print(f"     Plan:    {t.get('plan_type', '-')}")
         print(f"     Estado:  {t['status']}")
-        if t.get("completed_at"):
-            print(f"     Completado: {t['completed_at']}")
+        print(f"     Dir:     {t.get('audit_dir', '-')}")
+        if t.get("finished_at"):
+            print(f"     Fin:     {t['finished_at']}")
+        if t.get("error"):
+            print(f"     Error:   {t['error']}")
+
+
+def _migrate_from_json():
+    json_path = PROJECT_DIR / "data" / "tasks.json"
+    if not json_path.exists():
+        return
+    try:
+        import json as _json
+        old_tasks = _json.loads(json_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if not old_tasks:
+        return
+    db = get_db()
+    existing = db.execute("SELECT COUNT(*) as c FROM tasks").fetchone()["c"]
+    if existing > 0:
+        print(f"  ↪ La DB ya tiene {existing} tareas. Omitiendo migración.")
+        db.close()
+        return
+    for t in old_tasks:
+        db.execute(
+            """INSERT INTO tasks (id, user_id, repo_url, customer_email, plan_type, status, created_at, completed_at, error)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                t.get("id"),
+                t.get("user_id", 0),
+                t.get("repo_url", ""),
+                t.get("customer_email", ""),
+                t.get("plan_type", "auditoria_unica"),
+                t.get("status", "pending"),
+                t.get("created_at", datetime.now().isoformat()),
+                t.get("completed_at"),
+                t.get("error", ""),
+            ),
+        )
+    db.commit()
+    db.close()
+    print(f"  ↪ Migradas {len(old_tasks)} tareas desde tasks.json")
 
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Automatización de cola de tareas")
+    parser = argparse.ArgumentParser(description="Runner con cola SQLite y concurrencia")
     parser.add_argument("--add", help="Añadir tarea: repo_url")
     parser.add_argument("--email", help="Email del cliente (con --add)")
-    parser.add_argument("--plan", default="auditoria_unica", help="Plan (auditoria_unica|suscripcion_mensual)")
-    parser.add_argument("--user-id", type=int, default=0, help="ID de usuario en el dashboard")
-    parser.add_argument("--run-once", action="store_true", help="Procesar tareas pendientes y salir")
-    parser.add_argument("--daemon", action="store_true", help="Ejecutar en bucle como daemon")
-    parser.add_argument("--list", nargs="?", const="", help="Listar tareas (opcional: pending|completed|failed)")
+    parser.add_argument("--plan", default="auditoria_unica", help="Plan")
+    parser.add_argument("--user-id", type=int, default=0, help="ID de usuario")
+    parser.add_argument("--demo-id", default="", help="ID de demo gratuita")
+    parser.add_argument("--run-once", action="store_true", help="Procesar tareas y salir")
+    parser.add_argument("--daemon", action="store_true", help="Ejecutar en bucle")
+    parser.add_argument("--list", nargs="?", const="", help="Listar tareas")
+    parser.add_argument("--migrate", action="store_true", help="Migrar desde tasks.json")
 
     args = parser.parse_args()
 
+    if args.migrate:
+        _migrate_from_json()
+        return
+
     if args.add:
-        add_task(args.add, args.email or "cliente@ejemplo.com", args.plan, args.user_id)
-    elif args.run_once:
+        add_task(args.add, args.email or "", args.plan, args.user_id, args.demo_id)
+
+    if args.run_once:
         process_pending_tasks()
+
     elif args.daemon:
-        print(f"🧠 Daemon iniciado (intervalo: {SLEEP_INTERVAL}s)")
+        print(f"🧠 Daemon iniciado (intervalo: {SLEEP_INTERVAL}s, concurrencia: {MAX_CONCURRENT})")
         print("   Presiona Ctrl+C para detener")
         try:
             while True:
@@ -217,9 +302,11 @@ def main():
                 time.sleep(SLEEP_INTERVAL)
         except KeyboardInterrupt:
             print("\nDaemon detenido.")
-    elif args.list is not None:
+
+    if args.list is not None:
         list_tasks(args.list if args.list else None)
-    else:
+
+    if not any(vars(args).values()):
         parser.print_help()
 
 

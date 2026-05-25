@@ -11,6 +11,9 @@ from pathlib import Path
 
 PROJECT_DIR = Path(__file__).parent.parent
 
+from engine.health_check import check_tools, ToolMissingError
+check_tools(raise_on_missing=True)
+
 
 def write_status(audit_id: str, step: str, status: str, data: dict = None):
     status_dir = PROJECT_DIR / "data" / "audit_status"
