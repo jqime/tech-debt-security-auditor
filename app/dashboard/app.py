@@ -660,6 +660,61 @@ def security():
 def partners():
     return (PROJECT_DIR / "app" / "legal" / "partners.html").read_text(encoding="utf-8")
 
+@app.route("/create-checkout")
+def create_checkout_page():
+    plan = request.args.get("plan", "auditoria_unica")
+    repo_url = request.args.get("repo_url", "")
+    demo_id = request.args.get("demo_id", "")
+    email = request.args.get("email", "")
+
+    PRICES = {
+        "auditoria_unica": {"name": "Auditoría Única", "price": "299 €", "price_cents": 29900},
+        "compliance_pro": {"name": "Compliance Pro", "price": "1.500 €", "price_cents": 150000},
+        "professional": {"name": "Professional", "price": "9.900 €/año", "price_cents": 990000},
+        "enterprise": {"name": "Enterprise", "price": "29.900 €/año", "price_cents": 2990000},
+    }
+
+    p = PRICES.get(plan, PRICES["auditoria_unica"])
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Checkout — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{{background:#070d1a;color:#f8fafc;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;min-height:100vh}}
+.card{{background:#0a1428;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:2.5rem;max-width:480px;margin:2rem auto;box-shadow:0 20px 60px rgba(0,0,0,0.4)}}
+h1{{font-size:1.5rem;font-weight:700;color:#f1f5f9;margin-bottom:0.5rem}}
+.price{{font-size:2.5rem;font-weight:800;color:#f59e0b;margin:1rem 0}}
+.form-control{{background:#070d1a;border:1px solid rgba(255,255,255,0.1);color:#f8fafc;border-radius:10px;padding:12px 14px}}
+.form-control:focus{{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}}
+.btn-primary{{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:14px 24px;font-weight:700;color:#070d1a;width:100%}}
+.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.3)}}
+.text-muted{{color:#64748b}}
+</style></head>
+<body>
+<div class="container"><div class="card">
+<h1>Confirmar compra</h1>
+<p class="text-muted">{p['name']}</p>
+<div class="price">{p['price']}</div>
+<form id="checkoutForm">
+<input type="hidden" name="plan" value="{plan}">
+<div class="mb-3"><label class="form-label">URL del repositorio</label>
+<input type="url" name="repo_url" class="form-control" value="{repo_url}" placeholder="https://github.com/usuario/repo"></div>
+<div class="mb-3"><label class="form-label">Email</label>
+<input type="email" name="customer_email" class="form-control" value="{email}" required></div>
+<button type="submit" class="btn-primary" id="submitBtn">Pagar {p['price']} →</button>
+</form>
+<p class="text-muted mt-3 small text-center">Pago seguro procesado por Stripe · Factura disponible</p>
+</div></div>
+<script>
+document.getElementById('checkoutForm').addEventListener('submit', async function(e){{
+e.preventDefault();document.getElementById('submitBtn').disabled=true;
+document.getElementById('submitBtn').textContent='Redirigiendo a Stripe...';
+const fd=new FormData(this);const data=Object.fromEntries(fd);
+const resp=await fetch('/create-checkout-session',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(data)}});
+const j=await resp.json();if(j.url)window.location.href=j.url;else alert('Error: '+j.error);
+}});
+</script>
+</body></html>"""
+
 
 if __name__ == "__main__":
     port = int(os.getenv("DASHBOARD_PORT", "5000"))
