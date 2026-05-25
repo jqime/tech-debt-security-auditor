@@ -3,8 +3,8 @@ import csv
 import json
 import os
 import secrets
-import sqlite3
 import subprocess
+import sys
 import time
 import uuid
 from datetime import datetime
@@ -14,6 +14,8 @@ from flask import Flask, redirect, render_template_string, request, Response, ur
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.whitelabel.whitelabel import whitelabel_bp, get_client_config
+from app.db import get_db, init_db as db_init
+from app.demo.demo import demo_bp
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -34,6 +36,7 @@ else:
 app = Flask(__name__)
 app.secret_key = os.getenv("DASHBOARD_SECRET", "cambiar-en-produccion-123456")
 app.register_blueprint(whitelabel_bp)
+app.register_blueprint(demo_bp)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "/login"
@@ -51,124 +54,53 @@ class User(UserMixin):
         return {"id": self.id, "email": self.email, "created_at": self.created_at}
 
 
-def get_db():
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            is_admin INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            repo_url TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TEXT DEFAULT (datetime('now')),
-            completed_at TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS leads (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT,
-            email TEXT,
-            empresa TEXT,
-            repo_url TEXT,
-            mensaje TEXT,
-            converted INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS payments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            stripe_session_id TEXT,
-            amount INTEGER,
-            currency TEXT DEFAULT 'eur',
-            status TEXT DEFAULT 'completed',
-            created_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS compliance_scores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            task_id INTEGER,
-            repo_url TEXT,
-            secrets_score REAL,
-            vulnerabilities_score REAL,
-            complexity_score REAL,
-            duplication_score REAL,
-            perimeter_score REAL,
-            overall_score REAL,
-            created_at TEXT DEFAULT (datetime('now')),
-            FOREIGN KEY (task_id) REFERENCES tasks(id)
-        );
-    """)
-    # Create admin if not exists
-    existing = conn.execute("SELECT id FROM users WHERE email = ?", (ADMIN_USER,)).fetchone()
-    if not existing:
-        conn.execute(
-            "INSERT INTO users (email, password_hash, is_admin) VALUES (?, ?, 1)",
-            (ADMIN_USER, generate_password_hash(ADMIN_PASS)),
-        )
-        conn.commit()
-    conn.close()
-
-
-init_db()
+db_init()
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    conn.close()
+    db = get_db()
+    row = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    db.close()
     if row:
         return User(row["id"], row["email"], row["password_hash"], row["created_at"], row["is_admin"])
     return None
 
 
 def load_tasks(user_id=None, limit=100):
-    conn = get_db()
+    db = get_db()
     if current_user.is_authenticated and current_user.is_admin:
-        rows = conn.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        rows = db.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
     elif user_id:
-        rows = conn.execute("SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT ?", (user_id, limit)).fetchall()
+        rows = db.execute("SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT ?", (user_id, limit)).fetchall()
     else:
         rows = []
-    conn.close()
+    db.close()
     return [dict(r) for r in rows]
 
 
 def load_leads():
     rows = []
-    conn = get_db()
+    db = get_db()
     try:
-        rows = conn.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()
+        rows = db.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()
     except Exception:
         pass
-    conn.close()
+    db.close()
     return [dict(r) for r in rows]
 
 
 def get_stats():
-    conn = get_db()
-    total_users = conn.execute("SELECT COUNT(*) as c FROM users").fetchone()["c"]
-    total_tasks = conn.execute("SELECT COUNT(*) as c FROM tasks").fetchone()["c"]
-    completed = conn.execute("SELECT COUNT(*) as c FROM tasks WHERE status='completed'").fetchone()["c"]
-    pending = conn.execute("SELECT COUNT(*) as c FROM tasks WHERE status='pending'").fetchone()["c"]
-    total_leads = conn.execute("SELECT COUNT(*) as c FROM leads").fetchone()["c"]
-    total_payments = conn.execute("SELECT COUNT(*) as c FROM payments").fetchone()["c"]
-    revenue = conn.execute("SELECT COALESCE(SUM(amount),0) as s FROM payments WHERE status='completed'").fetchone()["s"]
-    recent = conn.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT 10").fetchall()
-    conn.close()
+    db = get_db()
+    total_users = db.execute("SELECT COUNT(*) as c FROM users").fetchone()["c"]
+    total_tasks = db.execute("SELECT COUNT(*) as c FROM tasks").fetchone()["c"]
+    completed = db.execute("SELECT COUNT(*) as c FROM tasks WHERE status='completed'").fetchone()["c"]
+    pending = db.execute("SELECT COUNT(*) as c FROM tasks WHERE status='pending'").fetchone()["c"]
+    total_leads = db.execute("SELECT COUNT(*) as c FROM leads").fetchone()["c"]
+    total_payments = db.execute("SELECT COUNT(*) as c FROM payments").fetchone()["c"]
+    revenue = db.execute("SELECT COALESCE(SUM(amount),0) as s FROM payments WHERE status='completed'").fetchone()["s"]
+    recent = db.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT 10").fetchall()
+    db.close()
     return {
         "users": total_users,
         "tasks_total": total_tasks,
@@ -401,15 +333,15 @@ loadCompliance();
 def index():
     if current_user.is_authenticated:
         tab = request.args.get("tab", "dashboard")
-        conn = get_db()
+        db = get_db()
         if current_user.is_admin:
-            leads = [dict(r) for r in conn.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()]
-            users = [dict(r) for r in conn.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()]
+            leads = [dict(r) for r in db.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall()]
+            users = [dict(r) for r in db.execute("SELECT * FROM users ORDER BY created_at DESC").fetchall()]
         else:
             leads = []
             users = []
-        payments = [dict(r) for r in conn.execute("SELECT * FROM payments WHERE user_id=? ORDER BY created_at DESC", (current_user.id,)).fetchall()]
-        conn.close()
+        payments = [dict(r) for r in db.execute("SELECT * FROM payments WHERE user_id=? ORDER BY created_at DESC", (current_user.id,)).fetchall()]
+        db.close()
         wl_config = get_client_config(current_user.email) if current_user.is_authenticated else None
         return render_template_string(TEMPLATE, tab=tab, whitelabel=wl_config, leads=leads, users=users, payments=payments, tasks=load_tasks(current_user.id), stats=get_stats(), now=datetime.now().strftime("%Y-%m-%d %H:%M"))
     return render_template_string(TEMPLATE, logged_out=True)
@@ -419,9 +351,9 @@ def index():
 def login():
     username = request.form.get("username", "")
     password = request.form.get("password", "")
-    conn = get_db()
-    row = conn.execute("SELECT * FROM users WHERE email = ?", (username,)).fetchone()
-    conn.close()
+    db = get_db()
+    row = db.execute("SELECT * FROM users WHERE email = ?", (username,)).fetchone()
+    db.close()
     if row and check_password_hash(row["password_hash"], password):
         user = User(row["id"], row["email"], row["password_hash"], row["created_at"], row["is_admin"])
         login_user(user)
@@ -436,18 +368,18 @@ def register():
     if not email or not password or len(password) < 6:
         return render_template_string(TEMPLATE, error="Email inválido o contraseña muy corta (mín 6 caracteres)")
 
-    conn = get_db()
-    existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    db = get_db()
+    existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
     if existing:
-        conn.close()
+        db.close()
         return render_template_string(TEMPLATE, error="Este email ya está registrado")
 
     phash = generate_password_hash(password)
-    conn.execute("INSERT INTO users (email, password_hash) VALUES (?, ?)", (email, phash))
-    conn.commit()
+    db.execute("INSERT INTO users (email, password_hash) VALUES (?, ?)", (email, phash))
+    db.commit()
 
-    row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    conn.close()
+    row = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    db.close()
 
     if row:
         user = User(row["id"], row["email"], row["password_hash"], row["created_at"], row["is_admin"])
@@ -466,8 +398,8 @@ def logout():
 @login_required
 def save_compliance():
     data = request.get_json(silent=True) or {}
-    conn = get_db()
-    conn.execute(
+    db = get_db()
+    db.execute(
         "INSERT INTO compliance_scores (task_id, repo_url, secrets_score, vulnerabilities_score, complexity_score, duplication_score, perimeter_score, overall_score) VALUES (?,?,?,?,?,?,?,?)",
         (
             data.get("task_id", 0),
@@ -480,20 +412,20 @@ def save_compliance():
             data.get("overall_score", 0),
         ),
     )
-    conn.commit()
-    conn.close()
+    db.commit()
+    db.close()
     return {"ok": True}
 
 
 @app.route("/compliance-scores")
 def get_compliance_scores():
     repo_url = request.args.get("repo", "")
-    conn = get_db()
+    db = get_db()
     if repo_url:
-        rows = conn.execute("SELECT * FROM compliance_scores WHERE repo_url = ? ORDER BY created_at ASC", (repo_url,)).fetchall()
+        rows = db.execute("SELECT * FROM compliance_scores WHERE repo_url = ? ORDER BY created_at ASC", (repo_url,)).fetchall()
     else:
-        rows = conn.execute("SELECT * FROM compliance_scores ORDER BY created_at DESC LIMIT 20").fetchall()
-    conn.close()
+        rows = db.execute("SELECT * FROM compliance_scores ORDER BY created_at DESC LIMIT 20").fetchall()
+    db.close()
     return {"scores": [dict(r) for r in rows]}
 
 
@@ -536,6 +468,8 @@ h1{color:#a5b4fc}.text-muted{color:#94a3b8}
 <form method="POST" action="/try-now" style="text-align:left">
 <div class="mb-3"><label class="form-label">URL del repositorio público</label>
 <input type="url" name="repo_url" class="form-control" placeholder="https://github.com/octocat/Hello-World" required></div>
+<div class="mb-3"><label class="form-label">Email</label>
+<input type="email" name="email" class="form-control" placeholder="tu@email.com" required></div>
 <button type="submit" class="btn btn-primary w-100"><i class="bi bi-play-fill me-2"></i>Escaneo gratuito</button>
 </form>
 <p class="text-muted mt-3 small">Sin registro. Resultados en 1-2 minutos.</p>
@@ -544,10 +478,28 @@ h1{color:#a5b4fc}.text-muted{color:#94a3b8}
 </body></html>""")
 
     repo_url = request.form.get("repo_url", "").strip()
-    if not repo_url:
-        return render_template_string("<p class='text-danger'>URL requerida</p>")
+    email = request.form.get("email", "").strip()
+    if not repo_url or not email:
+        return render_template_string("<p class='text-danger'>URL y email requeridos</p>")
+
+    LEADS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = LEADS_FILE.exists()
+    with open(LEADS_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["nombre", "email", "empresa", "repo_url", "mensaje", "fecha"])
+        writer.writerow(["Demo User", email, "", repo_url, "Demo audit", datetime.now().isoformat()])
 
     audit_id = str(uuid.uuid4())[:8]
+
+    AUDIT_STATUS_DIR.mkdir(parents=True, exist_ok=True)
+    status_file = AUDIT_STATUS_DIR / f"{audit_id}.json"
+    status_file.write_text(json.dumps({
+        "step": "init", "status": "running",
+        "email": email,
+        "data": {"repo": repo_url, "message": "Iniciando auditoría..."}
+    }, ensure_ascii=False), encoding="utf-8")
+
     subprocess.Popen(
         [sys.executable, str(PROJECT_DIR / "engine/run.py"), repo_url, "--audit-id", audit_id],
         cwd=str(PROJECT_DIR),
@@ -558,6 +510,14 @@ h1{color:#a5b4fc}.text-muted{color:#94a3b8}
 
 @app.route("/demo-progress/<audit_id>")
 def demo_progress(audit_id):
+    email = ""
+    status_file = AUDIT_STATUS_DIR / f"{audit_id}.json"
+    if status_file.exists():
+        try:
+            status_data = json.loads(status_file.read_text(encoding="utf-8"))
+            email = status_data.get("email", "")
+        except (json.JSONDecodeError, OSError):
+            pass
     return render_template_string("""<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -569,6 +529,7 @@ def demo_progress(audit_id):
 @keyframes spin{to{transform:rotate(360deg)}}
 h1{color:#a5b4fc}.step{color:#94a3b8;margin:.5rem 0}
 .completed{color:#10b981}.running{color:#fbbf24}
+.stat-number{font-size:2rem;font-weight:800;color:#6366f1}
 </style></head>
 <body>
 <div class="container">
@@ -585,11 +546,33 @@ h1{color:#a5b4fc}.step{color:#94a3b8;margin:.5rem 0}
 <div class="step" id="s-report">⏳ Generando informe...</div>
 </div>
 <div id="result" style="display:none">
-<div style="font-size:4rem">🎉</div>
-<h3 class="text-light">¡Auditoría completada!</h3>
-<p id="summary" class="text-muted"></p>
-<a id="report-link" class="btn btn-primary mt-3"><i class="bi bi-file-earmark-text me-2"></i>Ver informe</a>
-<p class="text-muted mt-3 small">Este informe está disponible solo durante esta sesión.</p>
+<h3 class="text-light" id="completion-title">🔍 Auditoría completada</h3>
+<div id="metrics-area" style="filter:blur(8px);pointer-events:none;user-select:none;margin-top:1rem">
+  <div class="row g-3">
+    <div class="col-4"><div class="card text-center p-3"><div class="stat-number" id="m-secrets">0</div><div class="text-muted small">Secretos</div></div></div>
+    <div class="col-4"><div class="card text-center p-3"><div class="stat-number" id="m-vulns">0</div><div class="text-muted small">Vulnerabilidades</div></div></div>
+    <div class="col-4"><div class="card text-center p-3"><div class="stat-number" id="m-complexity">—</div><div class="text-muted small">Complejidad</div></div></div>
+  </div>
+  <p id="summary" class="text-muted mt-2"></p>
+</div>
+<div style="background:linear-gradient(135deg,#0f1529,#131b2e);border:2px solid #6366f1;border-radius:20px;padding:2rem;text-align:center;margin-top:1.5rem">
+  <div style="font-size:3rem;margin-bottom:0.5rem">🔒</div>
+  <h3 style="color:#a5b4fc;font-weight:700">Informe Completo Bloqueado</h3>
+  <p style="color:#94a3b8;max-width:400px;margin:0 auto 1rem">
+    Los resultados detallados, el informe de cumplimiento NIS2/DORA, 
+    el PDF descargable y la certificación blockchain están disponibles en el plan completo.
+  </p>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+    <a href="?tab=invoices" style="display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;text-decoration:none;box-shadow:0 4px 20px rgba(99,102,241,0.3)">
+      DESBLOQUEAR INFORME — 299 €
+    </a>
+  </div>
+  <p style="color:#475569;font-size:0.75rem;margin-top:0.75rem">
+    Incluye PDF descargable · Certificación blockchain · Informe NIS2/DORA · Declaración de debida diligencia
+  </p>
+</div>
+<a id="report-link" class="btn btn-primary mt-3"><i class="bi bi-file-earmark-text me-2"></i>Vista previa del informe</a>
+<p class="text-muted mt-3 small">Tu auditoría está en proceso. Recibirás el informe completo por email en 5 minutos.</p>
 </div>
 </div></div>
 <script>
@@ -610,13 +593,18 @@ evtSource.onmessage = function(e) {
     document.getElementById('steps').style.display = 'none';
     document.getElementById('result').style.display = 'block';
     const d = data.data;
+    const repo = document.getElementById('repo').textContent || 'repositorio';
+    document.getElementById('completion-title').textContent = '🔍 Auditoría completada para ' + repo;
+    document.getElementById('m-secrets').textContent = d.secrets;
+    document.getElementById('m-vulns').textContent = d.vulnerabilities;
+    document.getElementById('m-complexity').textContent = d.complexity;
     document.getElementById('summary').innerHTML = '🔑 ' + d.secrets + ' secretos · 📦 ' + d.vulnerabilities + ' vulnerabilidades · 📊 Complejidad: ' + d.complexity;
-                    document.getElementById('report-link').href = '/reports/executive-report.html';
+    document.getElementById('report-link').href = '/reports/executive-report.html';
     evtSource.close();
   }
 };
 </script>
-</body></html>""", audit_id=audit_id)
+</body></html>""", audit_id=audit_id, email=email)
 
 
 # ── SSE: progreso en tiempo real ───────────────────────────────────
@@ -663,6 +651,14 @@ def terms():
 @app.route("/privacy")
 def privacy():
     return (PROJECT_DIR / "app" / "legal" / "privacy.html").read_text(encoding="utf-8")
+
+@app.route("/security")
+def security():
+    return (PROJECT_DIR / "app" / "legal" / "security.html").read_text(encoding="utf-8")
+
+@app.route("/partners")
+def partners():
+    return (PROJECT_DIR / "app" / "legal" / "partners.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":
