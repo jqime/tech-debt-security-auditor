@@ -7,5 +7,14 @@
     "status": "completed",
     "created_at": "2026-05-25T22:05:29.180106",
     "completed_at": "2026-05-25T22:07:43.550674"
+  },
+  {
+    "id": 2,
+    "repo_url": "https://github.com/octocat/Hello-World",
+    "customer_email": "test@ejemplo.com",
+    "plan_type": "auditoria_unica",
+    "status": "pending",
+    "created_at": "2026-05-25T23:20:33.972584",
+    "completed_at": null
   }
 ]
