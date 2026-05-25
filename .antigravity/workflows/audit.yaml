@@ -1,0 +1,19 @@
+name: "Security and Technical Debt Audit"
+description: "Audita la seguridad y la deuda técnica usando OpenCode y genera un informe visual premium."
+steps:
+  - name: security_scan
+    tool: opencode
+    model: opencode/zen
+    command: run --model opencode/zen "Analiza el repositorio. Encuentra secretos expuestos y dependencias vulnerables. Devuelve un JSON con: {\"secrets\": [], \"vulnerable_dependencies\": []}"
+    output: reports/security-report.json
+
+  - name: debt_measure
+    tool: opencode
+    model: opencode/zen
+    command: run --model opencode/zen "Analiza el repositorio. Mide la complejidad ciclomática y líneas duplicadas. Devuelve un JSON con: {\"average_complexity\": 0.0, \"duplicated_lines\": 0}"
+    output: reports/debt-report.json
+
+  - name: generate_report
+    tool: script
+    command: python3 scripts/generate_report.py
+    depends_on: [security_scan, debt_measure]
