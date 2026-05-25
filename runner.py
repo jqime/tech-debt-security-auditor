@@ -57,7 +57,7 @@ def process_task(task: dict) -> bool:
     print(f"{'='*60}")
 
     result = subprocess.run(
-        ["./run-audit.sh", task["repo_url"]],
+        ["./run_audit.sh", task["repo_url"]],
         capture_output=True, text=True, timeout=600,
         cwd=str(PROJECT_DIR),
     )

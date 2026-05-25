@@ -11,7 +11,7 @@ echo ""
 
 # 1. Auditoría de ejemplo
 echo "📡 [1/5] Ejecutando auditoría de ejemplo..."
-./run-audit.sh https://github.com/octocat/Hello-World
+./run_audit.sh https://github.com/octocat/Hello-World
 
 # 2. Informe de cumplimiento NIS2/DORA
 echo ""

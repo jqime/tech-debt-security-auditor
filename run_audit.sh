@@ -2,7 +2,7 @@
 set -e
 
 # Master Script for Tech Debt & Security Auditor
-# Usage: ./run-audit.sh [repo_url_or_local_path] [model]
+# Usage: ./run_audit.sh [repo_url_or_local_path] [model]
 
 TARGET=${1:-"https://github.com/octocat/Hello-World"}
 MODEL=${2:-"opencode/deepseek-v4-flash-free"}
@@ -34,7 +34,7 @@ fi
 mkdir -p "$SCRIPT_DIR/reports"
 
 # Execute the runner script
-python3 "$SCRIPT_DIR/engine/run.sh" "$AUDIT_PATH" "$MODEL"
+python3 "$SCRIPT_DIR/engine/run.py" "$AUDIT_PATH" "$MODEL"
 
 echo "=========================================================="
 echo "📊 AUDITORÍA COMPLETA Y FINALIZADA"

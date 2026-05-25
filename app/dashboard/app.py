@@ -10,6 +10,7 @@ from pathlib import Path
 from flask import Flask, redirect, render_template_string, request, url_for
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
+from app.whitelabel.whitelabel import whitelabel_bp, get_client_config
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -22,6 +23,7 @@ ADMIN_PASS = os.getenv("DASHBOARD_PASS", "admin123")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("DASHBOARD_SECRET", "cambiar-en-produccion-123456")
+app.register_blueprint(whitelabel_bp)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "/login"
@@ -176,6 +178,7 @@ TEMPLATE = """<!DOCTYPE html>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
+{% if whitelabel %}:root{--primary:{{whitelabel.primary_color}};--primary-dark:{{whitelabel.primary_color}}} .btn-primary{background:{{whitelabel.primary_color}}} .sidebar .nav-link.active,.sidebar .nav-link:hover{background:{{whitelabel.primary_color}}22} .stat-number{color:{{whitelabel.primary_color}}}{% endif %}
 body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif}
 .sidebar{background:#131b2e;min-height:100vh;border-right:1px solid #1e293b;padding:1.5rem}
 .sidebar .nav-link{color:#94a3b8;padding:.75rem 1rem;border-radius:10px;margin-bottom:.25rem}
@@ -201,6 +204,7 @@ body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif}
 <a class="nav-link {{'active' if tab=='tasks'}}" href="/?tab=tasks"><i class="bi bi-list-task me-2"></i>Mis Tareas</a>
 <a class="nav-link {{'active' if tab=='invoices'}}" href="/?tab=invoices"><i class="bi bi-credit-card me-2"></i>Pagos</a>
 <a class="nav-link {{'active' if tab=='compliance'}}" href="/?tab=compliance"><i class="bi bi-shield-check me-2"></i>Cumplimiento</a>
+<a class="nav-link {{'active' if tab=='mycompany'}}" href="/?tab=mycompany"><i class="bi bi-building me-2"></i>Mi Empresa</a>
 {% if current_user.is_admin %}
 <a class="nav-link {{'active' if tab=='leads'}}" href="/?tab=leads"><i class="bi bi-people me-2"></i>Leads</a>
 <a class="nav-link {{'active' if tab=='users'}}" href="/?tab=users"><i class="bi bi-person-badge me-2"></i>Usuarios</a>
@@ -225,6 +229,27 @@ body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif}
 <tbody>{% for u in users %}
 <tr><td>{{u.id}}</td><td>{{u.email}}</td><td>{{'👑' if u.is_admin else ''}}</td><td>{{u.created_at[:10]}}</td></tr>
 {% endfor %}</tbody></table></div></div>
+
+{% elif tab=='mycompany' %}
+<h4 class="mb-4"><i class="bi bi-building me-2"></i>Mi Empresa</h4>
+<div class="row g-4">
+<div class="col-md-6">
+<div class="card"><h5>Personalización</h5>
+<form id="whitelabelForm" method="POST" action="/my-company/save">
+<div class="mb-3"><label class="form-label">Nombre de empresa</label><input type="text" name="company_name" class="form-control" value="{{whitelabel.company_name if whitelabel else ''}}"></div>
+<div class="mb-3"><label class="form-label">Color primario (hex)</label><input type="color" name="primary_color" class="form-control form-control-color" value="{{whitelabel.primary_color if whitelabel else '#6366f1'}}"></div>
+<div class="mb-3"><label class="form-label">Logo URL</label><input type="url" name="logo_url" class="form-control" value="{{whitelabel.logo_url if whitelabel else ''}}" placeholder="https://tuempresa.com/logo.png"></div>
+<button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Guardar</button></form>
+</div></div>
+<div class="col-md-6">
+<div class="card"><h5>Vista previa</h5>
+<div style="background:var(--dark-bg);padding:1rem;border-radius:8px;text-align:center">
+  <div style="font-size:3rem;color:{{whitelabel.primary_color if whitelabel else '#6366f1'}}"><i class="bi bi-building"></i></div>
+  <h4 style="color:{{whitelabel.primary_color if whitelabel else '#6366f1'}}">{{whitelabel.company_name if whitelabel else 'Mi Empresa'}}</h4>
+  <p class="text-muted">Subdominio: <code>{{whitelabel.subdomain if whitelabel else 'tudominio'}}.codeauditpro.com</code></p>
+  <p class="text-muted">{{'✅ Personalización activa' if whitelabel else '❌ Sin personalizar'}}</p>
+</div></div></div>
+</div>
 
 {% elif tab=='invoices' %}
 <h4 class="mb-4"><i class="bi bi-credit-card me-2"></i>Pagos</h4>
@@ -370,7 +395,8 @@ def index():
             users = []
         payments = [dict(r) for r in conn.execute("SELECT * FROM payments WHERE user_id=? ORDER BY created_at DESC", (current_user.id,)).fetchall()]
         conn.close()
-        return render_template_string(TEMPLATE, tab=tab, leads=leads, users=users, payments=payments, tasks=load_tasks(current_user.id), stats=get_stats(), now=datetime.now().strftime("%Y-%m-%d %H:%M"))
+        wl_config = get_client_config(current_user.email) if current_user.is_authenticated else None
+        return render_template_string(TEMPLATE, tab=tab, whitelabel=wl_config, leads=leads, users=users, payments=payments, tasks=load_tasks(current_user.id), stats=get_stats(), now=datetime.now().strftime("%Y-%m-%d %H:%M"))
     return render_template_string(TEMPLATE, logged_out=True)
 
 

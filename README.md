@@ -1,382 +1,280 @@
-# 🛡️ CodeAudit Pro — Tech Debt & Security Auditor
+# 🛡️ CodeAudit Pro
 
-[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-CodeAudit%20Pro-blue?logo=github&style=flat-square)](https://github.com/marketplace)
-[![CI](https://github.com/jqime/tech-debt-security-auditor/actions/workflows/example-codeaudit.yml/badge.svg)](https://github.com/jqime/tech-debt-security-auditor/actions)
+**Auditoría de seguridad, calidad y cumplimiento normativo NIS2/DORA para PYMES y empresas.**
 
-Auditoría automatizada de seguridad y deuda técnica para PYMES. Genera informes ejecutivos HTML premium en 24h.
-
-También disponible como **GitHub Action** — ejecuta auditorías automáticas en cada push o pull request.
-
----
-
-## ✨ Funcionalidades Técnicas
-
-- **🔒 Security Scan**: Secretos, API keys, tokens, dependencias vulnerables.
-- **📊 Debt Measurement**: Complejidad ciclomática, líneas duplicadas, maintainability.
-- **🎨 HTML Report**: Informe visual oscuro con métricas y recomendaciones.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
+[![GitHub Actions](https://github.com/jqime/tech-debt-security-auditor/actions/workflows/example-codeaudit.yml/badge.svg)](https://github.com/jqime/tech-debt-security-auditor/actions)
+[![Trivy](https://img.shields.io/badge/Trivy-0.70-red)](https://trivy.dev)
+[![Semgrep](https://img.shields.io/badge/Semgrep-1.63-6a0dad)](https://semgrep.dev)
 
 ---
 
-## 🚀 Quick Start (Auditoría)
+## Descripción
+
+CodeAudit Pro es una plataforma **DevSecOps** que automatiza la detección de vulnerabilidades, secretos expuestos, deuda técnica y el mapeo de hallazgos contra los marcos regulatorios **NIS2** y **DORA**. Genera informes ejecutivos en HTML y PDF, certifica su integridad mediante SHA-256 + QR, y puede enviar los hallazgos a **SIEM**, crear **PRs automáticos** en GitHub y auditar de forma continua mediante **webhooks**.
+
+> **Precio desde:** 299 €/auditoría única · **Enterprise:** 29.900 €/año
+
+---
+
+## Tabla de Contenidos
+
+- [Requisitos](#requisitos)
+- [Instalación Rápida](#instalación-rápida)
+- [Uso](#uso)
+- [Variables de Entorno](#variables-de-entorno)
+- [Módulos](#módulos)
+- [Planes y Precios](#planes-y-precios)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Despliegue](#despliegue)
+- [Contribuir](#contribuir)
+- [Licencia](#licencia)
+
+---
+
+## Requisitos
+
+### Sistema
+- **Python** 3.10 o superior
+- **Git**
+- **Nginx** (para producción)
+
+### Herramientas de escaneo (instalación automática vía pip)
+| Herramienta | Propósito | Instalación |
+|------------|-----------|-------------|
+| [Trivy](https://trivy.dev) | Vulnerabilidades en dependencias | `curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \| sh` |
+| [Semgrep](https://semgrep.dev) | SAST multi-lenguaje | `pip install semgrep` |
+| [Bandit](https://bandit.readthedocs.io) | SAST Python | `pip install bandit` |
+| [truffleHog](https://github.com/trufflesecurity/trufflehog) | Secretos | `pip install truffleHog` |
+| [WeasyPrint](https://weasyprint.org) | Generación PDF | `pip install weasyprint` |
+| [QR Code](https://pypi.org/project/qrcode/) | QR de verificación | `pip install qrcode[pil]` |
+
+---
+
+## Instalación Rápida
 
 ```bash
-# Autenticar OpenCode (gratuito)
-opencode auth login
+# 1. Clonar
+git clone https://github.com/jqime/tech-debt-security-auditor.git
+cd tech-debt-security-auditor
 
-# Auditar un repositorio
-./run-audit.sh https://github.com/octocat/Hello-World
+# 2. Instalar dependencias Python
+pip install -r requirements.txt
 
-# El informe estará en:
-# reports/executive-report.html
+# 3. Instalar herramientas de escaneo
+pip install semgrep bandit truffleHog weasyprint qrcode[pil]
+
+# 4. Instalar Trivy (Linux)
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+
+# 5. Dar permisos
+chmod +x run_audit.sh deploy.sh test_compliance.sh
+
+# 6. ¡Listo!
+./run_audit.sh https://github.com/octocat/Hello-World
 ```
 
 ---
 
-## 🔄 GitHub Action
+## Uso
 
-Ejecuta auditorías automáticas en cada push o pull request:
-
-```yaml
-# .github/workflows/codeaudit.yml
-name: CodeAudit Pro
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run CodeAudit Pro
-        uses: jqime/tech-debt-security-auditor/.github/actions/codeaudit@main
-        id: codeaudit
-        with:
-          comment_pr: 'true'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: codeaudit-report
-          path: reports/executive-report.html
+### Auditoría básica
+```bash
+./run_audit.sh https://github.com/tu-empresa/tu-repo
 ```
+Genera en `reports/`:
+- `executive-report.html` — Informe ejecutivo premium
+- `security-report.json` — Hallazgos de seguridad (Trivy + Semgrep + Bandit + truffleHog)
+- `debt-report.json` — Métricas de deuda técnica
 
-**Inputs disponibles:**
+### Compliance NIS2/DORA
+```bash
+python3 compliance_report.py
+```
+Genera en `reports/`:
+- `compliance-nis2.html` — Informe de cumplimiento normativo completo
+- `compliance-nis2.pdf` — Versión PDF para auditores externos
 
-| Input | Descripción | Default |
-|-------|-------------|---------|
-| `repo_url` | URL del repo a auditar (vacío = repo actual) | `''` |
-| `opencode_model` | Modelo de OpenCode | `opencode/deepseek-v4-flash-free` |
-| `comment_pr` | Comentar hallazgos en PR | `true` |
-| `github_token` | Token para comentar en PRs | `''` |
+### Certificación blockchain
+```bash
+python3 certify.py --certify
+```
+- Inserta bloque SHA-256 en el informe HTML
+- Genera código QR de verificación
+- Registra hash en `reports/hashes.log`
 
-**Outputs:** `secrets_count`, `vulnerabilities_count`, `report_path`
+### Pipeline completo
+```bash
+./test_compliance.sh
+```
+Ejecuta: auditoría → compliance → certificación → resumen.
+
+### Remediación automática
+```bash
+export GITHUB_TOKEN=ghp_xxxx
+python3 auto_remediate.py --repo https://github.com/tu-empresa/tu-repo
+```
+Crea PRs automáticos con fixes de dependencias e issues para secretos.
+
+### Auditoría continua
+```bash
+python3 continuous_audit.py --daemon
+```
+- Escucha webhooks de GitHub en `:5003/webhook/github`
+- Auditorías programadas (diarias/semanales)
+- Notificación por email si el score de compliance empeora
 
 ---
 
-## 💰 Planes de Precios
+## Variables de Entorno
 
-| Plan | Precio | Incluye |
-|------|--------|---------|
-| **Gratuito** | 0 € | 1 auditoría pública/mes, informe básico sin compliance |
-| **Pro** | 299 €/aud | Informe técnico completo, dashboard, email |
-| **Compliance Pro** | 1.500 €/aud | Informe NIS2/DORA, certificación blockchain, hash + QR, declaración de debida diligencia para auditores |
-| **Enterprise** | 10.000 €/año | Dashboard multi-equipo, integración Jira, monitoreo continuo, alertas, SLA 4h, onboarding dedicado |
-
----
-
-## 💼 Módulos de Negocio
-
-### 1. Prospección de Clientes (`prospect.py`)
-
-Busca empresas tecnológicas en un radio de 50 km de una ciudad:
-
-```bash
-# Con API key real (Google Maps):
-export GOOGLE_MAPS_API_KEY=tu_api_key
-python3 prospect.py Madrid
-
-# Sin API key (usa datos simulados de ejemplo):
-python3 prospect.py Barcelona
-```
-
-Los leads se guardan en `data/leads.csv`.
-
-### 2. Landing Page (`app/landing/index.html`)
-
-Página de marketing con Bootstrap 5. Ábrela directamente:
-
-```bash
-python3 -m http.server 8080 -d app/landing
-# Abre http://localhost:8080
-```
-
-### 3. Pagos con Stripe (`payment.py`)
-
-```bash
-export STRIPE_SECRET_KEY=sk_test_...
-
-# Crear productos en Stripe
-python3 payment.py --setup
-
-# Crear sesión de checkout
-python3 payment.py --checkout auditoria_unica --repo https://github.com/user/repo --email cliente@email.com
-
-# Procesar webhook
-python3 payment.py --webhook webhook-event.json
-```
-
-### 4. Envío de Informes (`email_sender.py`)
-
-```bash
-export EMAIL_USER=tu.correo@gmail.com
-export EMAIL_PASS=contraseña_app
-
-python3 email_sender.py \
-  --to cliente@email.com \
-  --subject "Informe de auditoría" \
-  --attach reports/executive-report.html
-```
-
-### 5. Dashboard de Gestión (`app/dashboard/app.py`)
-
-Panel Flask con autenticación, estadísticas y control de auditorías:
-
-```bash
-export DASHBOARD_USER=admin
-export DASHBOARD_PASS=cambiar123
-
-pip install flask
-python3 app/dashboard/app.py
-# Abre http://localhost:5000
-```
-
-### 6. Cola de Tareas Automatizada (`runner.py`)
-
-```bash
-# Añadir tarea
-python3 runner.py --add https://github.com/user/repo --email cliente@email.com
-
-# Procesar una vez
-python3 runner.py --run-once
-
-# Ejecutar como daemon (revisa cada 30s)
-python3 runner.py --daemon
-
-# Listar tareas
-python3 runner.py --list
-python3 runner.py --list pending
-```
+| Variable | Obligatorio | Descripción |
+|----------|-------------|-------------|
+| `STRIPE_SECRET_KEY` | Para pagos | Secret key de Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Para webhook | Firma de webhook Stripe |
+| `EMAIL_USER` | Para emails | Correo Gmail |
+| `EMAIL_PASS` | Para emails | Contraseña de aplicación Gmail |
+| `GITHUB_TOKEN` | Para remediación | Token GitHub con permisos repo e issues |
+| `SIEM_WEBHOOK_URL` | Opcional | URL del webhook SIEM (Splunk/ELK) |
+| `SIEM_TOKEN` | Opcional | Token de autenticación SIEM |
+| `DASHBOARD_USER` | Opcional | Usuario admin (defecto: admin) |
+| `DASHBOARD_PASS` | Opcional | Contraseña admin (defecto: admin123) |
+| `DASHBOARD_PORT` | Opcional | Puerto dashboard (defecto: 5000) |
+| `PAYMENT_PORT` | Opcional | Puerto payment (defecto: 5002) |
+| `CONTINUOUS_PORT` | Opcional | Puerto continuous audit (defecto: 5003) |
 
 ---
 
-## 🔄 Flujo Completo (Cliente Simulado)
+## Módulos
 
-```bash
-# 1. Generar leads
-python3 prospect.py Madrid
+### 🖥️ Dashboard Ejecutivo
+Panel web en Flask con login, KPIs en tiempo real, gráficos Chart.js:
+- **Dashboard**: leads, auditorías, ingresos, últimas ejecuciones.
+- **Cumplimiento**: radar NIS2/DORA, evolución temporal, desglose por artículo.
+- **Cumplimiento Continuo**: score en el tiempo, vulnerabilidades críticas por repo, MTTR, alertas.
+- **Mi Empresa**: personalización white-label (colores, logo).
+- **Pagos**: historial de transacciones Stripe.
 
-# 2. Añadir tarea de auditoría
-python3 runner.py --add https://github.com/octocat/Hello-World --email cliente@ejemplo.com
+### 📋 Compliance NIS2/DORA
+Mapeo automático de hallazgos de seguridad contra:
+- **NIS2**: Art. 21 (seguridad redes, riesgo, continuidad, cadena suministro, criptografía, control acceso) y Art. 23 (notificación incidentes).
+- **DORA**: Art. 5-16 (gestión riesgo TIC), Art. 17-23 (notificación), Art. 24 (resiliencia), Art. 25-29 (terceros), Art. 30 (intercambio información).
+- Genera **HTML + PDF** con declaración de debida diligencia válida para auditores externos.
 
-# 3. Procesar la tarea (ejecuta auditoría + envía email)
-python3 runner.py --run-once
+### 🔏 Certificación Blockchain
+Cada informe recibe:
+- **SHA-256** del contenido completo
+- **Código QR** para verificación móvil
+- **Hash log** con fecha y hora
+- Compatible con **OpenTimestamps** (opcional)
 
-# 4. Ver el dashboard
-python3 app/dashboard/app.py
-# Abre http://localhost:5000 (user: admin / pass: admin123)
+### 🔄 Integración SIEM
+Envía hallazgos críticos a:
+- **Splunk HEC** (HTTP Event Collector)
+- **Elasticsearch** / Kibana
+- **Webhook genérico** (formato CEF-like)
+- Simulación cuando no hay SIEM configurado.
 
-# 5. Ver los informes generados
-ls reports/
-```
+### 🤖 Remediación Automática
+- **PRs automáticos** en GitHub para vulnerabilidades de dependencias (actualiza package.json/requirements.txt).
+- **Issues** para secretos expuestos con instrucciones de rotación.
+- Modo `--dry-run` para simular sin riesgo.
 
----
+### 🏢 Portal White-Label
+- Personalización de colores, logo y nombre de empresa.
+- Subdominio dedicado (`cliente.codeauditpro.com`).
+- Configuración desde el dashboard ("Mi Empresa").
 
-## ⚙️ Variables de Entorno
-
-| Variable | Descripción |
-|----------|-------------|
-| `GOOGLE_MAPS_API_KEY` | API key de Google Maps (prospección) |
-| `STRIPE_SECRET_KEY` | Secret key de Stripe (pagos) |
-| `EMAIL_USER` | Correo Gmail para envío de informes |
-| `EMAIL_PASS` | Contraseña de aplicación de Gmail |
-| `SMTP_SERVER` | Servidor SMTP (por defecto smtp.gmail.com) |
-| `SMTP_PORT` | Puerto SMTP (por defecto 587) |
-| `DASHBOARD_USER` | Usuario del panel (por defecto admin) |
-| `DASHBOARD_PASS` | Contraseña del panel (por defecto admin123) |
-| `DASHBOARD_PORT` | Puerto del dashboard (por defecto 5000) |
-| `RUNNER_INTERVAL` | Intervalo del daemon en segundos (por defecto 30) |
-
----
-
-## 📝 Blog Técnico
-
-Artículos sobre seguridad, calidad de código, automatización y negocio:
-
-- [OpenCode CLI vs. Antigravity para Automatización en 2026](app/blog/opencode-vs-antigravity/) — Comparativa técnica, benchmarks y casos de uso.
-- [SEO para Herramientas de Desarrollador: Guía Completa 2026](app/blog/seo-guide-2026/) — Schema markup, topic clusters y AI Overviews.
-- [Auditoría de Código Automática con OpenCode: Caso Práctico](app/blog/code-audit-case-study/) — Cómo una PYME evitó 10.000 € en pérdidas.
-
-→ [Ver todos los artículos](app/blog/index.html)
+### ⏱️ Auditoría Continua
+- **Webhooks** GitHub (push, pull_request) → auditoría automática.
+- **Programación** diaria/semanal con APScheduler.
+- **Alertas** por email si el score de compliance cae >10 puntos.
 
 ---
 
-## 📁 Estructura del Proyecto
+## Planes y Precios
+
+| Plan | Precio | Repos | Características |
+|------|--------|-------|-----------------|
+| **Gratuito** | 0 € | 1 público | Escaneo básico, resumen ejecutivo |
+| **Pro** | 299 €/aud | 1 | Informe completo, dashboard, email |
+| **Compliance Pro** | 1.500 €/aud | 1 | NIS2/DORA, PDF, certificación blockchain |
+| **Professional** | 9.900 €/año | Hasta 10 | Informes mensuales, remediación básica |
+| **Enterprise** | 29.900 €/año | Hasta 50 | White-label, SIEM, soporte 24/7, continua |
+| **Custom** | Bajo demanda | >100 | On-premise, SLA dedicado, consultoría |
+
+---
+
+## Estructura del Proyecto
 
 ```
 tech-debt-security-auditor/
-├── run-audit.sh              # 🚀 Script maestro de auditoría
-├── compliance_report.py      # 📋 Informe NIS2/DORA
+├── run_audit.sh              # 🚀 Script maestro de auditoría
+├── runner.py                 # Cola de tareas + email ventas
+├── compliance_report.py      # 📋 Informe NIS2/DORA + PDF
 ├── certify.py                # 🔏 Certificación blockchain
-├── test_compliance.sh        # 🧪 Demo de compliance
-├── runner.py                 # Cola de tareas
-├── email_sender.py           # Envío de emails
-├── payment.py                # Integración Stripe
-├── prospect.py               # Prospección de clientes
-├── engine/                   # ⚙️ Motor de auditoría
-│   ├── run.sh                # Orquestador Python
-│   └── generate_report.py    # Generador HTML
-├── app/                      # 🖥️ Aplicación web
-│   ├── dashboard/app.py      # Panel Flask
-│   ├── landing/index.html    # Landing page marketing
-│   └── blog/                 # Blog técnico
-│       ├── index.html
-│       ├── opencode-vs-antigravity/
-│       ├── seo-guide-2026/
-│       └── code-audit-case-study/
-├── .github/                  # 🔄 GitHub Actions
-│   ├── actions/codeaudit/    # Acción personalizada
-│   └── workflows/            # Workflows de ejemplo
-├── docs/                     # 📚 Documentación
-│   └── BUSINESS_PLAN.md
-├── tools/                    # 🛠️ Utilidades
+├── auto_remediate.py          # 🤖 PRs/issues automáticos
+├── continuous_audit.py        # ⏱️ Webhooks + scheduler
+├── email_sender.py            # Envío de emails
+├── payment.py                 # Integración Stripe
+├── prospect.py                # Prospección de clientes
+├── landing_handler.py         # Backend landing page
+├── enterprise_selling.md      # Guía de ventas enterprise
+├── engine/                    # ⚙️ Motor de auditoría
+│   ├── run.py                 # Orquestador (Trivy, Semgrep, Bandit, truffleHog)
+│   └── generate_report.py     # Generador HTML
+├── app/                       # 🖥️ Aplicación web
+│   ├── dashboard/app.py       # Panel Flask + white-label
+│   ├── landing/index.html     # Landing page marketing
+│   ├── whitelabel/            # Portal white-label
+│   └── blog/                  # Blog técnico
+├── integrations/              # 🔗 Integraciones
+│   ├── jira.py                # Jira Cloud
+│   └── siem.py                # Splunk / ELK
+├── .github/                   # 🔄 GitHub Actions
+├── docs/                      # 📚 Documentación
+│   ├── DEPLOYMENT.md          # Despliegue en producción
+│   ├── API.md                 # Endpoints públicos
+│   └── business_plan.md       # Plan de negocio
+├── tools/                     # 🛠️ Utilidades
+│   ├── migrate_enterprise.sh  # Demo + sandbox enterprise
 │   └── publish_blog.sh
-├── data/                     # 📊 Datos de ejecución
-│   ├── leads.csv
-│   └── tasks.json
-├── reports/                  # 📈 Informes generados
-│   ├── security-report.json
-│   ├── debt-report.json
-│   └── executive-report.html
-├── skills/                   # 🧠 OpenCode skills
-└── tests/                    # ✅ Tests
+├── data/                      # 📊 Datos de ejecución
+├── reports/                   # 📈 Informes generados
+├── test_compliance.sh         # 🧪 Pipeline de prueba
+├── deploy.sh                  # 🚀 Despliegue
+├── CONTRIBUTING.md            # Normas de contribución
+├── CHANGELOG.md               # Historial de versiones
+├── LICENSE                    # MIT License
+└── README.md                  # Este archivo
 ```
 
 ---
 
-## 📄 BUSINESS PLAN
+## Despliegue
 
-Ver `BUSINESS_PLAN.md` para estrategia completa de precios, márgenes y adquisición de clientes.
-
----
-
-## 🚀 Despliegue en Producción (VPS)
-
-### Requisitos mínimos
-
-- VPS con 1 CPU, 1 GB RAM, 20 GB SSD (DigitalOcean $6/mo, Hetzner $4/mo)
-- Ubuntu 22.04+ / Debian 12+
-- Dominio apuntando al VPS (opcional pero recomendado)
-
-### 1. Clonar el repositorio
+Para producción en VPS:
 
 ```bash
-git clone https://github.com/jqime/tech-debt-security-auditor.git
-cd tech-debt-security-auditor
-```
-
-### 2. Configurar variables de entorno
-
-```bash
-export STRIPE_SECRET_KEY="sk_test_..."          # Stripe (modo test)
-export STRIPE_WEBHOOK_SECRET="whsec_..."         # Stripe webhook secret
-export EMAIL_USER="tuemail@gmail.com"            # Gmail
-export EMAIL_PASS="contraseña_aplicacion"        # App password de Gmail
-export DASHBOARD_USER="admin"                    # Admin dashboard
-export DASHBOARD_PASS="contraseña_segura"        # Cambiar en producción
-export DASHBOARD_SECRET="clave_secreta_aleatoria" # Flask session key
-export DOMAIN="https://tudominio.com"             # Para redirects Stripe
-```
-
-Para variables persistentes, crea un archivo `.env`:
-
-```bash
-cat > .env << EOF
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-EMAIL_USER=tuemail@gmail.com
-EMAIL_PASS=contraseña_aplicacion
-DASHBOARD_USER=admin
-DASHBOARD_PASS=cambiar123
-DASHBOARD_SECRET=$(openssl rand -hex 32)
-DOMAIN=https://tudominio.com
-EOF
-```
-
-### 3. Ejecutar deploy automático
-
-```bash
-chmod +x deploy.sh
 ./deploy.sh
 ```
 
-Esto instala dependencias, arranca los 4 servicios y los deja corriendo.
+O manualmente con systemd + nginx (ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) para instrucciones detalladas).
 
-### 4. Proxy inverso con nginx (recomendado)
+Servicios:
+- **Dashboard**: `http://localhost:5000`
+- **Payment**: `http://localhost:5002`
+- **Continuous Audit**: `http://localhost:5003`
 
-```nginx
-server {
-    listen 80;
-    server_name tudominio.com;
+---
 
-    location / {
-        proxy_pass http://127.0.0.1:5000;  # Dashboard
-        proxy_set_header Host $host;
-    }
+## Contribuir
 
-    location /submit-lead {
-        proxy_pass http://127.0.0.1:5001;  # Landing handler
-    }
+Lee [CONTRIBUTING.md](CONTRIBUTING.md) para normas de código, pull requests y entorno de desarrollo.
 
-    location /create-checkout-session {
-        proxy_pass http://127.0.0.1:5002;  # Payment
-    }
+---
 
-    location /stripe-webhook {
-        proxy_pass http://127.0.0.1:5002;
-    }
-}
-```
+## Licencia
 
-### 5. Systemd services (producción)
-
-Crea `/etc/systemd/system/codeaudit-*.service` para cada servicio:
-
-```bash
-# Ejemplo: /etc/systemd/system/codeaudit-dashboard.service
-[Unit]
-Description=CodeAudit Pro Dashboard
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/opt/tech-debt-security-auditor
-EnvironmentFile=/opt/tech-debt-security-auditor/.env
-ExecStart=/usr/bin/python3 app/dashboard/app.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 6. Estructura de puertos
-
-| Servicio | Puerto | Descripción |
-|----------|--------|-------------|
-| Dashboard | 5000 | Panel web multi-usuario |
-| Landing handler | 5001 | Formulario de leads |
-| Payment | 5002 | Stripe checkout + webhooks |
-| Runner (daemon) | — | Cola de tareas automática |
+MIT © 2026 CodeAudit Pro. Ver [LICENSE](LICENSE).
