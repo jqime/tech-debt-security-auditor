@@ -1,0 +1,56 @@
+name: CodeAudit Pro Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      repo_url:
+        description: 'URL del repositorio a auditar'
+        required: false
+        default: ''
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run CodeAudit Pro
+        id: codeaudit
+        uses: jqime/tech-debt-security-auditor/.github/actions/codeaudit@main
+        with:
+          repo_url: ${{ github.event.inputs.repo_url || '' }}
+          opencode_model: 'opencode/deepseek-v4-flash-free'
+          comment_pr: 'true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeaudit-report
+          path: reports/executive-report.html
+          retention-days: 30
+
+      - name: Upload JSON reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeaudit-json
+          path: |
+            reports/security-report.json
+            reports/debt-report.json
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "## 🛡️ CodeAudit Pro Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔒 Secrets found | ${{ steps.codeaudit.outputs.secrets_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 Vulnerabilities | ${{ steps.codeaudit.outputs.vulnerabilities_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 [Download HTML report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY

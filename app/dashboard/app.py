@@ -7,7 +7,7 @@ from pathlib import Path
 
 from flask import Flask, redirect, render_template_string, request, send_file, url_for
 
-PROJECT_DIR = Path(__file__).parent.parent
+PROJECT_DIR = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_DIR / "data"
 LEADS_FILE = DATA_DIR / "leads.csv"
 TASKS_FILE = DATA_DIR / "tasks.json"

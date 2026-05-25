@@ -1,6 +1,11 @@
 # 🛡️ CodeAudit Pro — Tech Debt & Security Auditor
 
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-CodeAudit%20Pro-blue?logo=github&style=flat-square)](https://github.com/marketplace)
+[![CI](https://github.com/jqime/tech-debt-security-auditor/actions/workflows/example-codeaudit.yml/badge.svg)](https://github.com/jqime/tech-debt-security-auditor/actions)
+
 Auditoría automatizada de seguridad y deuda técnica para PYMES. Genera informes ejecutivos HTML premium en 24h.
+
+También disponible como **GitHub Action** — ejecuta auditorías automáticas en cada push o pull request.
 
 ---
 
@@ -27,6 +32,50 @@ opencode auth login
 
 ---
 
+## 🔄 GitHub Action
+
+Ejecuta auditorías automáticas en cada push o pull request:
+
+```yaml
+# .github/workflows/codeaudit.yml
+name: CodeAudit Pro
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run CodeAudit Pro
+        uses: jqime/tech-debt-security-auditor/.github/actions/codeaudit@main
+        id: codeaudit
+        with:
+          comment_pr: 'true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codeaudit-report
+          path: reports/executive-report.html
+```
+
+**Inputs disponibles:**
+
+| Input | Descripción | Default |
+|-------|-------------|---------|
+| `repo_url` | URL del repo a auditar (vacío = repo actual) | `''` |
+| `opencode_model` | Modelo de OpenCode | `opencode/deepseek-v4-flash-free` |
+| `comment_pr` | Comentar hallazgos en PR | `true` |
+| `github_token` | Token para comentar en PRs | `''` |
+
+**Outputs:** `secrets_count`, `vulnerabilities_count`, `report_path`
+
+---
+
 ## 💼 Módulos de Negocio
 
 ### 1. Prospección de Clientes (`prospect.py`)
@@ -44,12 +93,12 @@ python3 prospect.py Barcelona
 
 Los leads se guardan en `data/leads.csv`.
 
-### 2. Landing Page (`landing/index.html`)
+### 2. Landing Page (`app/landing/index.html`)
 
 Página de marketing con Bootstrap 5. Ábrela directamente:
 
 ```bash
-python3 -m http.server 8080 -d landing
+python3 -m http.server 8080 -d app/landing
 # Abre http://localhost:8080
 ```
 
@@ -80,7 +129,7 @@ python3 email_sender.py \
   --attach reports/executive-report.html
 ```
 
-### 5. Dashboard de Gestión (`dashboard/app.py`)
+### 5. Dashboard de Gestión (`app/dashboard/app.py`)
 
 Panel Flask con autenticación, estadísticas y control de auditorías:
 
@@ -89,7 +138,7 @@ export DASHBOARD_USER=admin
 export DASHBOARD_PASS=cambiar123
 
 pip install flask
-python3 dashboard/app.py
+python3 app/dashboard/app.py
 # Abre http://localhost:5000
 ```
 
@@ -125,7 +174,7 @@ python3 runner.py --add https://github.com/octocat/Hello-World --email cliente@e
 python3 runner.py --run-once
 
 # 4. Ver el dashboard
-python3 dashboard/app.py
+python3 app/dashboard/app.py
 # Abre http://localhost:5000 (user: admin / pass: admin123)
 
 # 5. Ver los informes generados
@@ -155,11 +204,11 @@ ls reports/
 
 Artículos sobre seguridad, calidad de código, automatización y negocio:
 
-- [OpenCode CLI vs. Antigravity para Automatización en 2026](blog/opencode-vs-antigravity/) — Comparativa técnica, benchmarks y casos de uso.
-- [SEO para Herramientas de Desarrollador: Guía Completa 2026](blog/seo-guide-2026/) — Schema markup, topic clusters y AI Overviews.
-- [Auditoría de Código Automática con OpenCode: Caso Práctico](blog/code-audit-case-study/) — Cómo una PYME evitó 10.000 € en pérdidas.
+- [OpenCode CLI vs. Antigravity para Automatización en 2026](app/blog/opencode-vs-antigravity/) — Comparativa técnica, benchmarks y casos de uso.
+- [SEO para Herramientas de Desarrollador: Guía Completa 2026](app/blog/seo-guide-2026/) — Schema markup, topic clusters y AI Overviews.
+- [Auditoría de Código Automática con OpenCode: Caso Práctico](app/blog/code-audit-case-study/) — Cómo una PYME evitó 10.000 € en pérdidas.
 
-→ [Ver todos los artículos](blog/index.html)
+→ [Ver todos los artículos](app/blog/index.html)
 
 ---
 
@@ -167,31 +216,38 @@ Artículos sobre seguridad, calidad de código, automatización y negocio:
 
 ```
 tech-debt-security-auditor/
-├── run-audit.sh              # Script maestro de auditoría
-├── scripts/
-│   ├── run.sh                 # Orquestador Python
-│   └── generate_report.py     # Generador HTML
-├── prospect.py                # Prospección de clientes
-├── payment.py                 # Integración Stripe
-├── email_sender.py            # Envío de emails
-├── runner.py                  # Cola de tareas
-├── landing/index.html         # Landing page marketing
-├── dashboard/app.py           # Panel Flask
-├── business-plan.md           # Plan de negocio
-├── blog/
-│   ├── index.html             # Listado de artículos
-│   ├── opencode-vs-antigravity/   # Artículo 1
-│   ├── seo-guide-2026/            # Artículo 2
-│   └── code-audit-case-study/     # Artículo 3
-├── tools/
-│   └── publish_blog.sh        # Script de publicación
-├── data/
-│   ├── leads.csv              # Leads generados
-│   └── tasks.json             # Cola de tareas
-└── reports/
-    ├── security-report.json
-    ├── debt-report.json
-    └── executive-report.html
+├── run-audit.sh              # 🚀 Script maestro de auditoría
+├── runner.py                 # Cola de tareas
+├── email_sender.py           # Envío de emails
+├── payment.py                # Integración Stripe
+├── prospect.py               # Prospección de clientes
+├── engine/                   # ⚙️ Motor de auditoría
+│   ├── run.sh                # Orquestador Python
+│   └── generate_report.py    # Generador HTML
+├── app/                      # 🖥️ Aplicación web
+│   ├── dashboard/app.py      # Panel Flask
+│   ├── landing/index.html    # Landing page marketing
+│   └── blog/                 # Blog técnico
+│       ├── index.html
+│       ├── opencode-vs-antigravity/
+│       ├── seo-guide-2026/
+│       └── code-audit-case-study/
+├── .github/                  # 🔄 GitHub Actions
+│   ├── actions/codeaudit/    # Acción personalizada
+│   └── workflows/            # Workflows de ejemplo
+├── docs/                     # 📚 Documentación
+│   └── BUSINESS_PLAN.md
+├── tools/                    # 🛠️ Utilidades
+│   └── publish_blog.sh
+├── data/                     # 📊 Datos de ejecución
+│   ├── leads.csv
+│   └── tasks.json
+├── reports/                  # 📈 Informes generados
+│   ├── security-report.json
+│   ├── debt-report.json
+│   └── executive-report.html
+├── skills/                   # 🧠 OpenCode skills
+└── tests/                    # ✅ Tests
 ```
 
 ---

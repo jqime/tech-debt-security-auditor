@@ -1,0 +1,48 @@
+name: 'CodeAudit Pro'
+description: >
+  Auditoría automatizada de seguridad y deuda técnica para repositorios.
+  Escanea secretos hardcodeados, dependencias vulnerables y mide complejidad del código.
+  Genera un informe HTML ejecutivo y opcionalmente comenta los hallazgos en Pull Requests.
+
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  repo_url:
+    description: 'URL del repositorio a auditar (por defecto usa el repositorio actual)'
+    required: false
+    default: ''
+  opencode_model:
+    description: 'Modelo de OpenCode a usar (ej: opencode/deepseek-v4-flash-free)'
+    required: false
+    default: 'opencode/deepseek-v4-flash-free'
+  comment_pr:
+    description: 'Comentar hallazgos en el Pull Request (true/false)'
+    required: false
+    default: 'true'
+  github_token:
+    description: 'Token de GitHub para comentar en PRs (secrets.GITHUB_TOKEN)'
+    required: false
+    default: ''
+
+outputs:
+  report_path:
+    description: 'Ruta del informe HTML generado'
+    value: 'reports/executive-report.html'
+  secrets_count:
+    description: 'Número de secretos encontrados'
+    value: ${{ steps.parse-report.outputs.secrets_count }}
+  vulnerabilities_count:
+    description: 'Número de vulnerabilidades encontradas'
+    value: ${{ steps.parse-report.outputs.vulnerabilities_count }}
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  entrypoint: '/entrypoint.sh'
+  args:
+    - ${{ inputs.repo_url }}
+    - ${{ inputs.opencode_model }}
+    - ${{ inputs.comment_pr }}
+    - ${{ inputs.github_token }}

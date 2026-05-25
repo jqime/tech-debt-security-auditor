@@ -7,13 +7,13 @@ cd "$SCRIPT_DIR"
 echo "📝 Publicando blog de CodeAudit Pro..."
 echo ""
 
-# Verificar que hay cambios en blog/
-if git diff --stat --cached blog/ | grep -q "blog/" || [[ -n $(git status --porcelain blog/) ]]; then
-    git add blog/
+# Verificar que hay cambios en app/blog/
+if git diff --stat --cached app/blog/ | grep -q "blog/" || [[ -n $(git status --porcelain app/blog/) ]]; then
+    git add app/blog/
     git commit -m "Actualización automática del blog - $(date +'%Y-%m-%d %H:%M')"
     echo "✓ Blog actualizado y commiteado."
 else
-    echo "ℹ️ No hay cambios nuevos en blog/."
+    echo "ℹ️ No hay cambios nuevos en app/blog/."
 fi
 
 # Preguntar si hacer push
@@ -26,4 +26,4 @@ else
 fi
 
 echo ""
-echo "📎 URL del blog: https://github.com/jqime/tech-debt-security-auditor/blob/main/blog/index.html"
+echo "📎 URL del blog: https://github.com/jqime/tech-debt-security-auditor/blob/main/app/blog/index.html"

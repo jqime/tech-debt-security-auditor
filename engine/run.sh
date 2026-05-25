@@ -68,7 +68,7 @@ def main():
             
     # 3. Report Generation
     print("🎨 [3/3] Generando informe visual premium...")
-    report_code, report_out, report_err = run_command("python3 scripts/generate_report.py")
+    report_code, report_out, report_err = run_command("python3 engine/generate_report.py")
     if report_code == 0:
         print("✓ Informe consolidado exitosamente.")
     else:

@@ -34,7 +34,7 @@ fi
 mkdir -p "$SCRIPT_DIR/reports"
 
 # Execute the runner script
-python3 "$SCRIPT_DIR/scripts/run.sh" "$AUDIT_PATH" "$MODEL"
+python3 "$SCRIPT_DIR/engine/run.sh" "$AUDIT_PATH" "$MODEL"
 
 echo "=========================================================="
 echo "📊 AUDITORÍA COMPLETA Y FINALIZADA"
