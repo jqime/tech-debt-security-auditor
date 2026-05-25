@@ -1,3 +1,16 @@
-```json
-{"secrets": [], "vulnerable_dependencies": []}
-```
+{
+  "secrets": [
+    {
+      "file": "config/production.json",
+      "line": 12,
+      "reason": "Potential database credential found in plain text"
+    }
+  ],
+  "vulnerable_dependencies": [
+    {
+      "name": "lodash",
+      "version": "4.17.20",
+      "severity": "HIGH"
+    }
+  ]
+}

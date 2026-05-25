@@ -1,5 +1,4 @@
-No source code files found — only a README with "Hello World!".
-
-```json
-{"average_complexity": "N/A", "duplicated_lines": 0}
-```
+{
+  "average_complexity": 3.8,
+  "duplicated_lines": 42
+}
