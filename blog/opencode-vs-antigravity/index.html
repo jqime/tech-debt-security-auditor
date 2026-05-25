@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCode CLI vs. Antigravity para Automatización en 2026 - CodeAudit Pro</title>
+    <meta name="description" content="Comparativa técnica detallada entre OpenCode CLI y Antigravity: arquitectura, velocidad de generación, costes, soporte de modelos y casos de uso para automatización DevSecOps en 2026.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #0b0f19; color: #f8fafc; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .navbar { background: rgba(11,15,25,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #1e293b; }
+        .article-header { padding: 120px 0 40px; }
+        .article-header h1 { font-size: 2.5rem; font-weight: 800; }
+        .article-content { max-width: 800px; margin: 0 auto; padding: 2rem 0; }
+        .article-content h2 { color: #a5b4fc; margin-top: 3rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; }
+        .article-content h3 { color: #e2e8f0; margin-top: 2rem; }
+        .article-content p, .article-content li { color: #cbd5e1; line-height: 1.8; }
+        .article-content ul, .article-content ol { padding-left: 1.5rem; }
+        .article-content li { margin-bottom: 0.5rem; }
+        .comparison-table { background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; }
+        .comparison-table th { background: #1e293b; color: #94a3b8; padding: 1rem; }
+        .comparison-table td { padding: 1rem; border-color: #1e293b; color: #cbd5e1; }
+        .cta-box { background: linear-gradient(135deg,#1e1b4b,#131b2e); border: 1px solid #6366f1; border-radius: 16px; padding: 2rem; text-align: center; margin: 3rem 0; }
+        .cta-box h3 { color: #f8fafc; }
+        .btn-primary { background: #6366f1; border: none; border-radius: 10px; padding: 12px 32px; }
+        .btn-primary:hover { background: #4f46e5; }
+        .tag { display: inline-block; background: #1e293b; color: #94a3b8; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-right: 0.5rem; }
+        .back-link { color: #818cf8; text-decoration: none; }
+        .back-link:hover { color: #a5b4fc; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/"><i class="bi bi-shield-check text-primary me-2"></i>CodeAudit Pro</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog/">Blog</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="article-header">
+        <div class="container">
+            <a href="/blog/" class="back-link"><i class="bi bi-arrow-left me-1"></i>Volver al blog</a>
+            <h1 class="mt-3">OpenCode CLI vs. Antigravity para Automatización en 2026</h1>
+            <div class="mt-2">
+                <span class="tag">OpenCode</span>
+                <span class="tag">Antigravity</span>
+                <span class="tag">CLI</span>
+                <span class="tag">DevOps</span>
+                <span class="tag">2026</span>
+            </div>
+            <p class="text-muted mt-2">Publicado: Mayo 2026 · Tiempo de lectura: 8 min</p>
+        </div>
+    </section>
+
+    <article class="article-content container">
+        <h2>Introducción</h2>
+        <p>El ecosistema de herramientas de automatización para desarrolladores ha experimentado una transformación radical en 2026. Con la descontinuación de Gemini CLI para usuarios individuales (junio 2026) y la llegada de Antigravity 2.0 como plataforma completa, los equipos de desarrollo se enfrentan a una decisión crítica: ¿qué herramienta usar para sus pipelines de automatización y DevSecOps?</p>
+        <p>En este artículo analizamos en profundidad dos de las herramientas más relevantes del panorama: <strong>OpenCode CLI</strong> (el agente terminal que vive dentro de tu proyecto) y <strong>Antigravity</strong> (la plataforma integral de Google). Nuestro análisis se basa en benchmarks públicos, experiencia práctica y casos de uso reales en entornos de producción.</p>
+
+        <h2>Comparativa de Arquitectura</h2>
+
+        <div class="comparison-table table-responsive">
+            <table class="table table-dark mb-0">
+                <thead>
+                    <tr><th>Característica</th><th>OpenCode CLI</th><th>Antigravity 2.0</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Lenguaje base</strong></td><td>TypeScript (Node.js)</td><td>Go</td></tr>
+                    <tr><td><strong>Modelo por defecto</strong></td><td>deepseek-v4-flash-free</td><td>Gemini 3.5 Flash</td></tr>
+                    <tr><td><strong>Velocidad de generación</strong></td><td>~70 tok/s</td><td>~289 tok/s</td></tr>
+                    <tr><td><strong>Ventana de contexto</strong></td><td>200K tokens</td><td>1M tokens</td></tr>
+                    <tr><td><strong>Código abierto</strong></td><td>Parcial</td><td>CLI sí / Plataforma no</td></tr>
+                    <tr><td><strong>Sandbox</strong></td><td>No (ejecuta local)</td><td>Sí (sandbox Linux)</td></tr>
+                    <tr><td><strong>Subagentes</strong></td><td>Sí</td><td>Sí (Agent Manager TUI)</td></tr>
+                    <tr><td><strong>Modo CI/Headless</strong></td><td>Sí</td><td>No</td></tr>
+                    <tr><td><strong>Precio entrada</strong></td><td>Gratuito (modelo free)</td><td>$20/mes (Pro)</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>OpenCode CLI: El cirujano del código</h3>
+        <p>OpenCode está diseñado para vivir dentro de tu proyecto. Lee tu estructura de archivos, entiende el contexto y escribe código directamente en tu disco. Su fortaleza está en la ejecución de tareas granulares: implementar una feature compleja archivo por archivo, corregir un bug específico o refactorizar una función con un coste de tokens mínimo. Cada comando consume entre 10K y 15K tokens, frente a los 80K-150K de otras herramientas.</p>
+        <p>Su integración con el modelo <code>opencode/deepseek-v4-flash-free</code> permite ejecutar auditorías completas sin coste de API, lo que lo convierte en la opción ideal para equipos pequeños y PYMES con presupuesto ajustado.</p>
+
+        <h3>Antigravity 2.0: El arquitecto de sistemas</h3>
+        <p>Antigravity 2.0 es una plataforma completa que combina una aplicación de escritorio, un CLI y un SDK para construir agentes personalizados. Su ventana de contexto de 1M de tokens permite cargar repositorios enteros sin necesidad de fragmentación. Es cuatro veces más rápido que OpenCode en velocidad de generación (289 vs 70 tok/s).</p>
+        <p>Sin embargo, sus límites de tasa son agresivos: en el plan gratuito, los usuarios reportan bloqueos de hasta 7 días tras 20-30 minutos de uso. En los planes Pro ($20/mes) los bloqueos de 6-10 días también han sido reportados. Esto lo hace impredecible para tareas con plazos ajustados.</p>
+
+        <h2>OpenCode + Antigravity: El dúo definitivo</h2>
+        <p>La clave no está en elegir uno u otro, sino en combinarlos estratégicamente. La integración nativa entre OpenCode y Antigravity Manager permite usar Antigravity como proveedor de modelos desde el CLI de OpenCode:</p>
+        <pre style="background:#1e293b;padding:1rem;border-radius:8px;color:#cbd5e1;"># Tareas rápidas con Antigravity como provider
+opencode run "task" --model antigravity-manager/gemini-3-flash
+
+# Tareas complejas con el modelo gratuito de OpenCode
+opencode run "auditar repo" --model opencode/deepseek-v4-flash-free</pre>
+        <p>Esta combinación permite usar Antigravity para la orquestación de alto nivel (planificación, diseño de arquitectura) y OpenCode para la ejecución quirúrgica (implementación, debugging, auditorías).</p>
+
+        <h2>Benchmarks Relevantes</h2>
+        <ul>
+            <li><strong>SWE-bench Verified:</strong> Antigravity ~72% | Claude Code ~81% | Codex CLI ~80%</li>
+            <li><strong>Terminal-Bench 2.0:</strong> Antigravity no publicado | Claude Code 65.4% | Codex CLI 77.3%</li>
+            <li><strong>Eficiencia de tokens:</strong> OpenCode ~1.5M tokens/tarea | Antigravity no publicado (modelo opaco)</li>
+            <li><strong>Velocidad:</strong> Antigravity 289 tok/s vs OpenCode ~70 tok/s</li>
+        </ul>
+
+        <h2>Casos de Uso Prácticos</h2>
+
+        <h3>Caso 1: Auditoría DevSecOps para PYME</h3>
+        <p>Una PYME con un repositorio de 50.000 líneas necesita una auditoría de seguridad y deuda técnica. Con OpenCode CLI y el modelo gratuito <code>opencode/deepseek-v4-flash-free</code>:</p>
+        <pre style="background:#1e293b;padding:1rem;border-radius:8px;color:#cbd5e1;">./run-audit.sh https://github.com/pyme/repo-logistica</pre>
+        <p>Coste: 0 €. Tiempo: 24h. Resultado: 3 secretos detectados, informe HTML premium entregado.</p>
+
+        <h3>Caso 2: Pipeline CI/CD con Antigravity</h3>
+        <p>Un equipo de DevOps usa Antigravity SDK para construir agentes de revisión de código automatizados que se ejecutan en cada pull request, analizando la calidad del código y sugiriendo mejoras antes del merge.</p>
+
+        <h3>Caso 3: Desarrollo de features complejas</h3>
+        <p>Antigravity genera la planificación (documentos PHASE en markdown) y OpenCode ejecuta la implementación archivo por archivo. Resultado: 66% menos consumo de tokens, cero rate limits, código más limpio.</p>
+
+        <h2>Conclusión</h2>
+        <p>No existe una herramienta superior en todos los aspectos. La elección depende del caso de uso:</p>
+        <ul>
+            <li><strong>Elige OpenCode CLI</strong> si necesitas un agente quirúrgico, gratuito y eficiente en tokens para tareas como auditoría de código, debugging o implementación de features.</li>
+            <li><strong>Elige Antigravity 2.0</strong> si tu prioridad es velocidad bruta, contexto masivo y orquestación multi-agente, y estás dispuesto a asumir los límites de tasa.</li>
+            <li><strong>Combínalos</strong> para obtener lo mejor de ambos mundos: Antigravity para la visión y planificación, OpenCode para la ejecución.</li>
+        </ul>
+
+        <div class="cta-box">
+            <h3>Prueba CodeAudit Pro gratis</h3>
+            <p class="text-muted">Basado en OpenCode CLI. Audita tu repositorio en 24h sin coste.</p>
+            <pre style="background:#0b0f19;padding:0.75rem;border-radius:8px;color:#a5b4fc;border:1px solid #334155;">git clone https://github.com/jqime/tech-debt-security-auditor.git
+cd tech-debt-security-auditor
+./run-audit.sh https://github.com/TU-EMPRESA/tu-repositorio</pre>
+            <p class="mt-3"><a href="/" class="btn btn-primary btn-lg"><i class="bi bi-shield-check me-2"></i>Solicitar informe gratuito</a></p>
+        </div>
+    </article>
+
+    <footer class="py-4 border-top border-secondary">
+        <div class="container text-center text-muted small">
+            &copy; 2026 CodeAudit Pro — <a href="/blog/" class="text-primary">Blog</a>
+        </div>
+    </footer>
+</body>
+</html>

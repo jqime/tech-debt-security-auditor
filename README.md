@@ -151,6 +151,18 @@ ls reports/
 
 ---
 
+## 📝 Blog Técnico
+
+Artículos sobre seguridad, calidad de código, automatización y negocio:
+
+- [OpenCode CLI vs. Antigravity para Automatización en 2026](blog/opencode-vs-antigravity/) — Comparativa técnica, benchmarks y casos de uso.
+- [SEO para Herramientas de Desarrollador: Guía Completa 2026](blog/seo-guide-2026/) — Schema markup, topic clusters y AI Overviews.
+- [Auditoría de Código Automática con OpenCode: Caso Práctico](blog/code-audit-case-study/) — Cómo una PYME evitó 10.000 € en pérdidas.
+
+→ [Ver todos los artículos](blog/index.html)
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -165,7 +177,14 @@ tech-debt-security-auditor/
 ├── runner.py                  # Cola de tareas
 ├── landing/index.html         # Landing page marketing
 ├── dashboard/app.py           # Panel Flask
-├── BUSINESS_PLAN.md           # Plan de negocio
+├── business-plan.md           # Plan de negocio
+├── blog/
+│   ├── index.html             # Listado de artículos
+│   ├── opencode-vs-antigravity/   # Artículo 1
+│   ├── seo-guide-2026/            # Artículo 2
+│   └── code-audit-case-study/     # Artículo 3
+├── tools/
+│   └── publish_blog.sh        # Script de publicación
 ├── data/
 │   ├── leads.csv              # Leads generados
 │   └── tasks.json             # Cola de tareas
