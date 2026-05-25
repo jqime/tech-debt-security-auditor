@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import subprocess
 import sys
-import tempfile
+import uuid
+from datetime import datetime
 from pathlib import Path
 
 
 PROJECT_DIR = Path(__file__).parent.parent
+
+
+def write_status(audit_id: str, step: str, status: str, data: dict = None):
+    status_dir = PROJECT_DIR / "data" / "audit_status"
+    status_dir.mkdir(parents=True, exist_ok=True)
+    status_file = status_dir / f"{audit_id}.json"
+    entry = {"step": step, "status": status, "updated_at": datetime.utcnow().isoformat() + "Z"}
+    if data:
+        entry["data"] = data
+    status_file.write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")
 
 
 def run_cmd(cmd, timeout=180):
@@ -151,14 +163,26 @@ def run_radon_dup(repo_path):
 
 
 def main():
-    repo_path = sys.argv[1] if len(sys.argv) > 1 else "."
-    print(f"🚀 Iniciando auditoría con herramientas reales: {repo_path}")
+    parser = argparse.ArgumentParser(description="CodeAudit Pro — Motor de auditoría")
+    parser.add_argument("repo_path", nargs="?", default=".", help="Ruta del repositorio a auditar")
+    parser.add_argument("model", nargs="?", default="opencode/deepseek-v4-flash-free", help="Modelo opencode")
+    parser.add_argument("--audit-id", default=str(uuid.uuid4())[:8], help="ID único para esta auditoría")
+    args = parser.parse_args()
+
+    repo_path = args.repo_path
+    audit_id = args.audit_id
+
+    print(f"🚀 Auditoría #{audit_id} — {repo_path}")
+    print(f"   Progreso: http://localhost:5000/audit-status/{audit_id}")
     os.makedirs("reports", exist_ok=True)
+
+    write_status(audit_id, "init", "running", {"repo": repo_path, "message": "Iniciando auditoría..."})
 
     secrets = []
     vulns = []
     bandit_findings = []
 
+    write_status(audit_id, "secrets", "running", {"message": "Escaneando secretos (truffleHog + Semgrep)..."})
     print("🔒 [1/5] Escaneando secretos (truffleHog + Semgrep)...")
     th_secrets = run_trufflehog(repo_path)
     print(f"   truffleHog: {len(th_secrets)} hallazgos")
@@ -166,19 +190,24 @@ def main():
     print(f"   Semgrep: {len(sm_secrets)} secretos, {len(sm_vulns)} vulnerabilidades")
     secrets.extend(th_secrets)
     secrets.extend(sm_secrets)
+    write_status(audit_id, "secrets", "done", {"secrets_found": len(secrets)})
 
+    write_status(audit_id, "sast", "running", {"message": "Escaneando SAST Python (bandit)..."})
     print("🔐 [2/5] Escaneando SAST Python (bandit)...")
     bandit_findings = run_bandit(repo_path)
     print(f"   bandit: {len(bandit_findings)} hallazgos")
     for b in bandit_findings:
         if b.get("severity", "").upper() in ("HIGH", "MEDIUM"):
             vulns.append(b)
+    write_status(audit_id, "sast", "done", {"sast_findings": len(bandit_findings)})
 
+    write_status(audit_id, "deps", "running", {"message": "Escaneando dependencias (Trivy)..."})
     print("📦 [3/5] Escaneando dependencias (Trivy)...")
     trivy_vulns = run_trivy(repo_path)
     print(f"   Trivy: {len(trivy_vulns)} vulnerabilidades")
     vulns.extend(trivy_vulns)
     vulns.extend(sm_vulns)
+    write_status(audit_id, "deps", "done", {"vulns_found": len(trivy_vulns)})
 
     # Deduplicate by (file, line, rule)
     seen = set()
@@ -189,12 +218,15 @@ def main():
             seen.add(key)
             deduped_vulns.append(v)
 
+    write_status(audit_id, "debt", "running", {"message": "Midiendo deuda técnica..."})
     print("📊 [4/5] Midiendo deuda técnica (lizard/radon)...")
     debt = run_lizard(repo_path) or {}
     dup = run_radon_dup(repo_path) or {}
     debt.update(dup)
+    write_status(audit_id, "debt", "done", {"complexity": debt.get("average_complexity", "N/A")})
 
     # Save security report
+    write_status(audit_id, "save", "running", {"message": "Guardando resultados..."})
     sec_report = {
         "secrets": secrets,
         "vulnerable_dependencies": [v for v in deduped_vulns if v.get("source") == "trivy"],
@@ -225,12 +257,22 @@ def main():
         json.dump(debt, f, indent=2, ensure_ascii=False)
     print(f"✓ {debt_file} guardado (complejidad: {debt['average_complexity']})")
 
+    write_status(audit_id, "report", "running", {"message": "Generando informe visual..."})
     print("🎨 [5/5] Generando informe visual...")
     code, out, err = run_cmd("python3 engine/generate_report.py")
     if code == 0:
         print("✓ Informe generado: reports/executive-report.html")
     else:
         print(f"⚠️ Error en generación de informe: {err[:200]}")
+        write_status(audit_id, "report", "error", {"error": err[:200]})
+        return
+
+    write_status(audit_id, "complete", "done", {
+        "secrets": len(secrets),
+        "vulnerabilities": len(deduped_vulns),
+        "complexity": debt.get("average_complexity", "N/A"),
+        "report": "reports/executive-report.html",
+    })
 
     print("\n🎉 Auditoría completada.")
     print(f"   Secretos: {len(secrets)}")

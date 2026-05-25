@@ -2,12 +2,15 @@
 import csv
 import json
 import os
+import secrets
 import sqlite3
 import subprocess
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, redirect, render_template_string, request, url_for
+from flask import Flask, redirect, render_template_string, request, Response, url_for, stream_with_context
 from flask_login import LoginManager, UserMixin, current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.whitelabel.whitelabel import whitelabel_bp, get_client_config
@@ -17,9 +20,16 @@ DATA_DIR = PROJECT_DIR / "data"
 DB_PATH = DATA_DIR / "dashboard.db"
 LEADS_FILE = DATA_DIR / "leads.csv"
 TASKS_FILE = DATA_DIR / "tasks.json"
+AUDIT_STATUS_DIR = DATA_DIR / "audit_status"
 
 ADMIN_USER = os.getenv("DASHBOARD_USER", "admin")
-ADMIN_PASS = os.getenv("DASHBOARD_PASS", "admin123")
+_ADMIN_PASS_ENV = os.getenv("DASHBOARD_PASS", "")
+if _ADMIN_PASS_ENV:
+    ADMIN_PASS = _ADMIN_PASS_ENV
+else:
+    ADMIN_PASS = secrets.token_urlsafe(16)
+    print(f"⚠️  DASHBOARD_PASS no definida. Se generó: {ADMIN_PASS}")
+    print(f"   Defínela como variable de entorno para evitar que cambie cada reinicio.")
 
 app = Flask(__name__)
 app.secret_key = os.getenv("DASHBOARD_SECRET", "cambiar-en-produccion-123456")
@@ -378,6 +388,11 @@ loadCompliance();
 </div></div></div>
 {% endif %}
 </div></div>
+<div class="text-center text-muted small mt-4 mb-2">
+<a href="/terms" class="text-muted me-3">Términos</a>
+<a href="/privacy" class="text-muted me-3">Privacidad</a>
+&copy; 2026 CodeAudit Pro
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body></html>"""
 
@@ -496,7 +511,162 @@ def run_task():
     return redirect("/?tab=tasks")
 
 
+# ── Free demo (no login required) ──────────────────────────────────
+
+@app.route("/try-now", methods=["GET", "POST"])
+def try_now():
+    if request.method == "GET":
+        return render_template_string("""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Demo gratuita — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;min-height:100vh}
+.card{background:#131b2e;border:1px solid #1e293b;border-radius:16px;padding:2rem;max-width:600px;margin:2rem auto}
+.form-control{background:#1e293b;border:1px solid #334155;color:#f8fafc;border-radius:10px}
+.form-control:focus{background:#1e293b;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15);color:#f8fafc}
+.btn-primary{background:#6366f1;border:none;border-radius:10px;padding:12px 32px}
+h1{color:#a5b4fc}.text-muted{color:#94a3b8}
+</style></head>
+<body>
+<div class="container">
+<div class="card text-center">
+<h1><i class="bi bi-shield-check text-primary me-2"></i>CodeAudit Pro</h1>
+<p class="text-muted">Prueba gratuita — escanea cualquier repositorio público de GitHub</p>
+<form method="POST" action="/try-now" style="text-align:left">
+<div class="mb-3"><label class="form-label">URL del repositorio público</label>
+<input type="url" name="repo_url" class="form-control" placeholder="https://github.com/octocat/Hello-World" required></div>
+<button type="submit" class="btn btn-primary w-100"><i class="bi bi-play-fill me-2"></i>Escaneo gratuito</button>
+</form>
+<p class="text-muted mt-3 small">Sin registro. Resultados en 1-2 minutos.</p>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>""")
+
+    repo_url = request.form.get("repo_url", "").strip()
+    if not repo_url:
+        return render_template_string("<p class='text-danger'>URL requerida</p>")
+
+    audit_id = str(uuid.uuid4())[:8]
+    subprocess.Popen(
+        [sys.executable, str(PROJECT_DIR / "engine/run.py"), repo_url, "--audit-id", audit_id],
+        cwd=str(PROJECT_DIR),
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return redirect(f"/demo-progress/{audit_id}")
+
+
+@app.route("/demo-progress/<audit_id>")
+def demo_progress(audit_id):
+    return render_template_string("""<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Escaneando... — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI',sans-serif;padding:2rem}
+.card{background:#131b2e;border:1px solid #1e293b;border-radius:16px;padding:2rem;max-width:600px;margin:2rem auto;text-align:center}
+.spinner{width:48px;height:48px;border:4px solid #1e293b;border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{color:#a5b4fc}.step{color:#94a3b8;margin:.5rem 0}
+.completed{color:#10b981}.running{color:#fbbf24}
+</style></head>
+<body>
+<div class="container">
+<div class="card">
+<div class="spinner" id="spinner"></div>
+<h1>🔍 Escaneando repositorio</h1>
+<p class="text-muted" id="repo">Cargando...</p>
+<div id="steps">
+<div class="step" id="s-init">⏳ Iniciando...</div>
+<div class="step" id="s-secrets">⏳ Escaneando secretos...</div>
+<div class="step" id="s-sast">⏳ Escaneando código (SAST)...</div>
+<div class="step" id="s-deps">⏳ Escaneando dependencias...</div>
+<div class="step" id="s-debt">⏳ Midiendo deuda técnica...</div>
+<div class="step" id="s-report">⏳ Generando informe...</div>
+</div>
+<div id="result" style="display:none">
+<div style="font-size:4rem">🎉</div>
+<h3 class="text-light">¡Auditoría completada!</h3>
+<p id="summary" class="text-muted"></p>
+<a id="report-link" class="btn btn-primary mt-3"><i class="bi bi-file-earmark-text me-2"></i>Ver informe</a>
+<p class="text-muted mt-3 small">Este informe está disponible solo durante esta sesión.</p>
+</div>
+</div></div>
+<script>
+const AUDIT_ID = '{{ audit_id }}';
+const evtSource = new EventSource('/audit-status/' + AUDIT_ID);
+const steps = { init:'s-init', secrets:'s-secrets', sast:'s-sast', deps:'s-deps', debt:'s-debt', report:'s-report' };
+evtSource.onmessage = function(e) {
+  const data = JSON.parse(e.data);
+  if (data.step === 'init' && data.status === 'running') document.getElementById('repo').textContent = data.data?.repo || '';
+  for (const [key, id] of Object.entries(steps)) {
+    if (data.step === key) {
+      document.getElementById(id).className = 'step ' + (data.status === 'done' ? 'completed' : 'running');
+      document.getElementById(id).innerHTML = (data.status === 'done' ? '✅ ' : '⏳ ') + (data.data?.message || document.getElementById(id).textContent.trim());
+    }
+  }
+  if (data.step === 'complete' && data.status === 'done') {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('steps').style.display = 'none';
+    document.getElementById('result').style.display = 'block';
+    const d = data.data;
+    document.getElementById('summary').innerHTML = '🔑 ' + d.secrets + ' secretos · 📦 ' + d.vulnerabilities + ' vulnerabilidades · 📊 Complejidad: ' + d.complexity;
+                    document.getElementById('report-link').href = '/reports/executive-report.html';
+    evtSource.close();
+  }
+};
+</script>
+</body></html>""", audit_id=audit_id)
+
+
+# ── SSE: progreso en tiempo real ───────────────────────────────────
+
+@app.route("/audit-status/<audit_id>")
+def audit_status_sse(audit_id):
+    status_file = AUDIT_STATUS_DIR / f"{audit_id}.json"
+    def generate():
+        last_data = None
+        while True:
+            if status_file.exists():
+                try:
+                    data = status_file.read_text(encoding="utf-8").strip()
+                    if data and data != last_data:
+                        last_data = data
+                        yield f"data: {data}\n\n"
+                        parsed = json.loads(data)
+                        if parsed.get("status") in ("done", "error"):
+                            break
+                except (json.JSONDecodeError, OSError):
+                    pass
+            time.sleep(0.5)
+        yield "data: {\"step\":\"done\",\"status\":\"closed\"}\n\n"
+    return Response(stream_with_context(generate()), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+
+# ── Serve generated reports ───────────────────────────────────────
+
+@app.route("/reports/<path:filename>")
+def serve_report(filename):
+    report_path = PROJECT_DIR / "reports" / filename
+    if report_path.exists() and report_path.suffix in (".html", ".pdf", ".png"):
+        return report_path.read_bytes() if report_path.suffix != ".html" else report_path.read_text(encoding="utf-8")
+    return "Not found", 404
+
+
+# ── Legal ──────────────────────────────────────────────────────────
+
+@app.route("/terms")
+def terms():
+    return (PROJECT_DIR / "app" / "legal" / "terms.html").read_text(encoding="utf-8")
+
+@app.route("/privacy")
+def privacy():
+    return (PROJECT_DIR / "app" / "legal" / "privacy.html").read_text(encoding="utf-8")
+
+
 if __name__ == "__main__":
     port = int(os.getenv("DASHBOARD_PORT", "5000"))
     print(f"📊 Dashboard en http://localhost:{port}")
+    print(f"🔬 Demo gratis: http://localhost:{port}/try-now")
     app.run(host="0.0.0.0", port=port, debug=False)

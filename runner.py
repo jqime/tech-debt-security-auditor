@@ -121,9 +121,14 @@ def process_task(task: dict) -> bool:
             <tr><td style="padding:8px 0;">✅ Integración con Jira para remediation</td></tr>
         </table>
         <p style="margin-top:15px;text-align:center;">
-            <a href="https://codeauditpro.com/#contacto" style="display:inline-block;background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Solicitar Compliance Pro (1.500 €)</a>
+            <a href="/try-now" style="display:inline-block;background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Probar demo gratuita</a>
         </p>
-        <p style="text-align:center;margin:5px 0 0;font-size:12px;color:#94a3b8;">Plan Enterprise desde 10.000 €/año — <a href="https://codeauditpro.com/#contacto">Contactar Ventas</a></p>
+        <table style="width:100%;margin-top:15px;border-collapse:collapse;font-size:12px;">
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:4px 8px;">Professional</td><td style="padding:4px 8px;">9.900 €/año</td><td style="padding:4px 8px;">10 repos, informes mensuales</td></tr>
+            <tr style="border-bottom:1px solid #ddd;"><td style="padding:4px 8px;">Enterprise</td><td style="padding:4px 8px;">29.900 €/año</td><td style="padding:4px 8px;">50 repos, SIEM, white-label, 24/7</td></tr>
+            <tr><td style="padding:4px 8px;">Custom</td><td style="padding:4px 8px;">Bajo demanda</td><td style="padding:4px 8px;">On-premise, SLA dedicado</td></tr>
+        </table>
+        <p style="text-align:center;margin:5px 0 0;font-size:12px;color:#94a3b8;"><a href="/terms" style="color:#94a3b8;">Términos</a> · <a href="/privacy" style="color:#94a3b8;">Privacidad</a></p>
     </div>
 
     <p>Si tienes cualquier pregunta, responde a este correo.</p>

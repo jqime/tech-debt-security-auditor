@@ -1,43 +1,33 @@
 #!/bin/bash
 set -e
 
-# Master Script for Tech Debt & Security Auditor
-# Usage: ./run_audit.sh [repo_url_or_local_path] [model]
-
-TARGET=${1:-"https://github.com/octocat/Hello-World"}
-MODEL=${2:-"opencode/deepseek-v4-flash-free"}
-
-# Establish absolute directory path of the script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+TARGET=${1:-"https://github.com/octocat/Hello-World"}
+MODEL=${2:-"opencode/deepseek-v4-flash-free"}
+AUDIT_ID=$(uuidgen 2>/dev/null || python3 -c "import uuid;print(uuid.uuid4())" 2>/dev/null || date +%s)
+TEMP_DIR="/tmp/codeaudit-$AUDIT_ID"
+
 echo "=========================================================="
-echo "🛡️  INICIANDO ASISTENTE DE AUDITORÍA DE SEGURIDAD Y CALIDAD"
+echo "🛡️  CodeAudit Pro — Auditoría #$AUDIT_ID"
 echo "=========================================================="
 
-# Check if target is a git URL or a local path
 if [[ "$TARGET" =~ ^https?:// ]] || [[ "$TARGET" =~ ^git@ ]]; then
-    TEMP_DIR="/tmp/test-repo"
-    echo "🌐 Clonando repositorio remoto: $TARGET..."
-    
-    # Clean up previous runs
-    rm -rf "$TEMP_DIR"
-    
-    # Clone the repo
+    echo "🌐 Clonando: $TARGET"
     git clone --depth 1 "$TARGET" "$TEMP_DIR"
     AUDIT_PATH="$TEMP_DIR"
 else
     AUDIT_PATH="$TARGET"
 fi
 
-# Ensure reports directory exists
 mkdir -p "$SCRIPT_DIR/reports"
 
-# Execute the runner script
-python3 "$SCRIPT_DIR/engine/run.py" "$AUDIT_PATH" "$MODEL"
+python3 "$SCRIPT_DIR/engine/run.py" "$AUDIT_PATH" "$MODEL" --audit-id "$AUDIT_ID"
+
+rm -rf "$TEMP_DIR"
 
 echo "=========================================================="
-echo "📊 AUDITORÍA COMPLETA Y FINALIZADA"
-echo "👉 Reporte ejecutivo disponible en:"
-echo "   $SCRIPT_DIR/reports/executive-report.html"
+echo "📊 AUDITORÍA COMPLETA — ID: $AUDIT_ID"
+echo "👉 reports/executive-report.html"
 echo "=========================================================="
