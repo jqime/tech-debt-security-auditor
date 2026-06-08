@@ -235,7 +235,12 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
 .paywall-overlay .exposure{font-size:1.8rem;font-weight:800;color:#ef4444;margin:0.5rem 0}
 .paywall-cta{display:inline-block;padding:16px 48px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;font-size:1rem;text-decoration:none;transition:all 0.2s;box-shadow:0 4px 20px rgba(245,158,11,0.25)}
 .paywall-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.35);color:#070d1a}
-.blocked{filter:blur(6px);pointer-events:none;user-select:none;position:relative;margin-bottom:2rem}
+.fomo{position:relative;margin-bottom:2rem}
+.fomo-mask{filter:blur(4px);display:inline-block;transition:filter 0.3s}
+.fomo-mask:hover{filter:blur(0)}
+.urgency-banner{background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid #fca5a5;border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.urgency-banner .text{color:#fecaca;font-size:0.85rem;font-weight:600}
+.urgency-banner .countdown{color:#fca5a5;font-family:monospace;font-size:1.2rem;font-weight:700}
 .text-muted{color:#64748b}
 </style>
 </head>
@@ -275,23 +280,29 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
   </div>
 </div>
 
-<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">🔬 Top hallazgos críticos</h3>
+<div class="urgency-banner">
+  <div class="text">⚠️ Exposición estimada a multas NIS2/DORA</div>
+  <div class="countdown">{{ exposure_fmt }} €</div>
+</div>
+
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">🔬 {{ all_findings|length }} hallazgos detectados</h3>
 <div class="findings-table">
 <table>
-<thead><tr><th>Herramienta</th><th>Archivo</th><th>Descripción</th></tr></thead>
+<thead><tr><th>Tipo</th><th>Severidad</th><th>Ubicación</th><th>Detalle</th></tr></thead>
 <tbody>
-{% for f in visible_findings %}
+{% for f in all_findings %}
 <tr>
-<td>{{ f.tool }}</td>
-<td style="font-family:monospace;font-size:0.78rem">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
-<td>{{ f.reason[:100] }}</td>
+<td style="text-align:center;font-size:1.1rem">{{ f.type }}</td>
+<td><span class="badge {{ f.severity_class }}">{{ f.severity }}</span></td>
+<td style="font-family:monospace;font-size:0.78rem;color:#38bdf8">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
+<td>{{ f.reason[:80] }}{% if f.reason|length > 80 %}...{% endif %}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
 
-<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">📜 Artículos NIS2 en riesgo</h3>
+<h3 style="font-size:1rem;font-weight:600;margin-bottom:0.75rem;color:#e2e8f0">📜 Artículos NIS2/DORA en riesgo</h3>
 <div class="articles-list">
 {% for art in nis2_articles %}
 <span class="article-tag">{{ art }}</span>
@@ -301,28 +312,29 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
 {% if hidden_count > 0 %}
 <div class="paywall-overlay">
   <div class="lock">🔒</div>
-  <h3>{{ hidden_count }} hallazgos adicionales y plan completo de remediación</h3>
+  <h3>🚨 {{ hidden_count }} hallazgos adicionales bloqueados — Plan completo de remediación</h3>
+  <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:1rem;margin:1rem 0">
+    <p style="color:#fca5a5;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem">
+      Datos críticos no visibles en la vista gratuita:
+    </p>
+    <p style="color:#fecaca;font-size:0.8rem">
+      • CVEs exactas de cada dependencia vulnerable<br>
+      • Líneas de código con secretos expuestos<br>
+      • Mapa artículo por artículo de NIS2 y DORA<br>
+      • Plan de remediación priorizado por urgencia
+    </p>
+  </div>
   <div class="exposure">{{ exposure_fmt }} €</div>
-  <p>Multa potencial estimada según tamaño y sector de tu empresa</p>
-  <a class="paywall-cta" href="/create-checkout?plan=compliance_pro&demo_id={{ demo_id }}&email={{ email }}&repo_url={{ repo_url }}">
-    Ver informe completo — Compliance Pro 1.500 €
-  </a>
-  <p style="color:#475569;font-size:0.72rem;margin-top:0.75rem">
-    Incluye: lista completa de hallazgos · mapa de cumplimiento por artículo NIS2 · plan de remediación · certificación SHA-256
-  </p>
-</div>
-
-<div class="blocked">
-  <h3 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:0.75rem">📋 Lista completa de hallazgos</h3>
-  <div class="findings-table">
-  <table>
-  <thead><tr><th>Tipo</th><th>Severidad</th><th>Detalle</th></tr></thead>
-  <tbody>
-  {% for f in all_findings_for_blocked %}
-  <tr><td>{{ f.type }}</td><td><span class="badge {{ f.severity_class }}">{{ f.severity }}</span></td><td>{{ f.reason[:60] }}</td></tr>
-  {% endfor %}
-  </tbody>
-  </table>
+  <p style="color:#fca5a5;font-size:0.85rem;font-weight:600">Multa potencial si no actúas — según Art. 31 NIS2 y Art. 50 DORA</p>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:1.25rem">
+    <a class="paywall-cta" href="/create-checkout?plan=compliance_pro&demo_id={{ demo_id }}&email={{ email }}&repo_url={{ repo_url }}" style="font-size:1.1rem;padding:18px 56px">
+      🔓 DESBLOQUEAR INFORME — {{ price }} €
+    </a>
+    <div style="display:flex;gap:16px;font-size:0.72rem;color:#475569">
+      <span>✅ PDF descargable</span>
+      <span>✅ Certificación SHA-256</span>
+      <span>✅ Validez legal</span>
+    </div>
   </div>
 </div>
 {% endif %}
@@ -522,9 +534,10 @@ def result_demo(demo_id):
         elif sev == "critical":
             vuln_counts["critical"] += 1
 
-    # Top 2 visible findings, rest hidden
-    visible = all_findings[:2]
+    # All findings visible (FOMO teaser), premium details masked
     hidden_count = max(0, len(all_findings) - 2)
+    # Price based on plan
+    price = "1.500" if len(all_findings) > 10 else "299"
 
     # NIS2 articles at risk based on findings
     nis2_articles = ["Art.21.1", "Art.23", "Art.27", "Art.32", "Art.45"]
@@ -551,11 +564,11 @@ def result_demo(demo_id):
         demo_id=demo_id,
         overall_score=overall_score,
         vuln_counts=vuln_counts,
-        visible_findings=visible,
+        all_findings=all_findings,
         hidden_count=hidden_count,
-        all_findings_for_blocked=all_findings,
         nis2_articles=nis2_articles,
         exposure_fmt=exposure_fmt,
+        price=price,
     )
 
 
@@ -587,10 +600,12 @@ def _run_demo_audit(demo_id: str, repo_url: str, email: str):
 
         write_step("secrets", 20, "Escaneando secretos expuestos (truffleHog + Semgrep)...")
 
-        # Run the real engine
+        # Run the real engine (30 min timeout for large repos)
+        write_step("secrets", 20, "Ejecutando escáneres de seguridad...")
+        ENGINE_TIMEOUT = int(os.getenv("ENGINE_TIMEOUT", "1800"))
         result = subprocess.run(
             [sys.executable, "engine/run.py", target, "--audit-id", demo_id[:8]],
-            capture_output=True, text=True, timeout=600,
+            capture_output=True, text=True, timeout=ENGINE_TIMEOUT,
             cwd=str(PROJECT_DIR),
         )
 

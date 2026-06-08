@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request
+from flask import Flask, Blueprint, jsonify, request
 
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -138,3 +138,6 @@ def create_checkout_session():
 @landing_bp.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "project": "CodeAudit Pro"})
+
+app = Flask(__name__)
+app.register_blueprint(landing_bp)

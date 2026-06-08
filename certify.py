@@ -40,6 +40,7 @@ def embed_in_html(report_path: Path, hash_hex: str):
     if not report_path.exists():
         return
     html = report_path.read_text(encoding="utf-8")
+    DOMAIN = os.getenv("DOMAIN", "https://codeauditpro.com")
     cert_block = f"""
 <!-- CERTIFY BLOCK -->
 <div style="background:#131b2e;border:1px solid #6366f1;border-radius:16px;padding:1.5rem;margin:2rem 0" id="certify">
@@ -50,6 +51,15 @@ Este informe ha sido certificado digitalmente para garantizar su integridad.<br>
 <strong>Fecha:</strong> {datetime.now().isoformat()}<br>
 <strong>Verificar:</strong> <code style="background:#1e293b;padding:4px 8px;border-radius:4px;">sha256sum {report_path.name}</code>
 </p>
+<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #1e293b;text-align:center">
+<p style="color:#94a3b8;font-size:0.75rem;margin-bottom:0.5rem;">
+✅ Auditado y certificado por <strong style="color:#a5b4fc;">CodeAudit Pro</strong>
+</p>
+<p style="font-size:0.72rem;color:#64748b;">
+¿Tu software cumple con la normativa europea NIS2/DORA?<br>
+<a href="{DOMAIN}/try-now" style="color:#818cf8;font-weight:600;">→ Escanea tu repositorio gratis en 2 minutos</a>
+</p>
+</div>
 </div>
 <!-- END CERTIFY BLOCK -->
 """

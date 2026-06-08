@@ -330,8 +330,33 @@ def onboarding():
             email = session.get("customer_details", {}).get("email", "") or session.get("customer_email", "")
             metadata = session.get("metadata", {})
             plan = metadata.get("plan", plan)
-            if email:
-                return redirect(f"/dashboard/onboarding?email={email}&plan={plan}")
+            if email and session.get("payment_status") == "paid":
+                    db = get_db()
+                    existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+                    if not existing:
+                        from werkzeug.security import generate_password_hash
+                        temp_pass = str(uuid.uuid4())[:12]
+                        db.execute(
+                            "INSERT INTO users (email, password_hash, is_admin) VALUES (?, ?, 0)",
+                            (email, generate_password_hash(temp_pass)),
+                        )
+                        db.commit()
+                        row = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+                        user_id = row["id"] if row else 0
+                    else:
+                        user_id = existing["id"]
+                    existing_payment = db.execute(
+                        "SELECT id FROM payments WHERE stripe_session_id = ?", (session.get("id", ""),
+                    )).fetchone()
+                    if not existing_payment and user_id:
+                        db.execute(
+                            "INSERT INTO payments (user_id, stripe_session_id, amount, currency, status) VALUES (?, ?, ?, ?, 'completed')",
+                            (user_id, session.get("id", ""),
+                             PRODUCTS.get(plan, {}).get("price_cents", 0) if "PRODUCTS" in dir() else 0, "eur"),
+                        )
+                        db.commit()
+                    db.close()
+                    return redirect(f"/dashboard/onboarding?email={email}&plan={plan}")
         except Exception:
             pass
 
@@ -382,8 +407,116 @@ def health():
     return jsonify({"status": "ok", "stripe_configured": stripe_ok, "products": list(PRODUCTS.keys())})
 
 
+# ── Abandoned Cart Recovery ─────────────────────────────────────
+
+def _send_discount_email(email: str, discount_pct: int = 10):
+    """Envía email de recuperación con descuento por tiempo limitado."""
+    try:
+        email_script = PROJECT_DIR / "email_sender.py"
+        if not email_script.exists():
+            return
+        discount_code = f"RECUPERA{discount_pct}"
+        checkout_url = f"{BASE_URL}/create-checkout?plan=compliance_pro&email={email}&coupon={discount_code}"
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;padding:20px;background:#f4f4f4;">
+<div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;padding:32px;border:2px solid #f59e0b;">
+<div style="text-align:center;margin-bottom:16px;">
+<span style="display:inline-block;background:#f59e0b;color:#111827;padding:6px 20px;border-radius:100px;font-size:0.75rem;font-weight:700;text-transform:uppercase;">⏰ Oferta exclusiva · 24h</span>
+</div>
+<h2 style="color:#111827;text-align:center;">¿Te olvidaste de tu auditoría?</h2>
+<p style="color:#6b7280;text-align:center;margin-bottom:16px;">
+Tu análisis de seguridad está completo y te está esperando. Durante las próximas <strong>24 horas</strong> puedes desbloquear el informe completo con un <strong>{discount_pct}% de descuento</strong>.
+</p>
+<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;margin-bottom:20px;text-align:center;">
+<p style="color:#92400e;font-size:0.85rem;margin-bottom:4px;">Código de descuento:</p>
+<p style="font-family:monospace;font-size:1.5rem;font-weight:800;color:#f59e0b;letter-spacing:0.1em;">{discount_code}</p>
+<p style="color:#92400e;font-size:0.78rem;">{discount_pct}% de descuento · Válido 24h</p>
+</div>
+<div style="text-align:center;margin:20px 0;">
+<a href="{checkout_url}" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#111827;padding:16px 48px;border-radius:12px;text-decoration:none;font-weight:700;font-size:1.05rem;box-shadow:0 4px 20px rgba(245,158,11,0.3);">
+DESBLOQUEAR CON {discount_pct}% OFF →
+</a>
+</div>
+<p style="color:#9ca3af;font-size:0.72rem;text-align:center;">
+Tu informe incluye: compliance NIS2/DORA · PDF certificado · Plan de remediación · Validez legal
+</p>
+<div style="border-top:1px solid #e5e7eb;margin-top:24px;padding-top:16px;text-align:center;color:#9ca3af;font-size:0.72rem;">
+CodeAudit Pro · Cumplimiento NIS2/DORA para PYMEs<br>
+<a href="{BASE_URL}/unsubscribe?email={email}" style="color:#9ca3af;">Darme de baja</a>
+</div></div></body></html>"""
+        body_file = PROJECT_DIR / "reports" / "_recovery_email.html"
+        body_file.write_text(html, encoding="utf-8")
+        subprocess.run(
+            [sys.executable, str(email_script), "--to", email,
+             "--subject", f"⏰ {discount_pct}% de descuento — tu auditoría te espera",
+             "--body", str(body_file)],
+            cwd=str(PROJECT_DIR), capture_output=True, timeout=30,
+        )
+        print(f"  📧 Email recuperación enviado a {email} (código: {discount_code})")
+    except Exception as e:
+        print(f"  ⚠️ Error email recuperación: {e}")
+
+
+def _recover_abandoned_carts():
+    """Busca leads sin pago > 2h y envía email de recuperación."""
+    from datetime import datetime, timedelta
+    try:
+        db = get_db()
+        cutoff = (datetime.now() - timedelta(hours=2)).isoformat()
+        rows = db.execute(
+            """SELECT DISTINCT l.email, l.repo_url
+               FROM leads l
+               LEFT JOIN users u ON l.email = u.email
+               LEFT JOIN payments p ON u.id = p.user_id
+               WHERE l.created_at < ?
+               AND (p.id IS NULL OR p.status != 'completed')
+               AND l.email NOT IN (
+                   SELECT email FROM leads WHERE mensaje LIKE '%recovery_sent%'
+               )""",
+            (cutoff,),
+        ).fetchall()
+        db.close()
+
+        for row in rows:
+            email = row["email"]
+            _send_discount_email(email, discount_pct=10)
+            # Marcar recovery como enviado
+            db2 = get_db()
+            db2.execute(
+                "UPDATE leads SET mensaje = mensaje || ' | recovery_sent' WHERE email = ? AND mensaje NOT LIKE '%recovery_sent%'",
+                (email,),
+            )
+            db2.commit()
+            db2.close()
+
+        if rows:
+            print(f"  📬 Recuperación: {len(rows)} carritos abandonados")
+    except Exception as e:
+        print(f"  ⚠️ Error en recuperación de carritos: {e}")
+
+
+def start_recovery_scheduler():
+    """Inicia el scheduler de recuperación de carritos abandonados (cada 30 min)."""
+    from apscheduler.schedulers.background import BackgroundScheduler
+    try:
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(_recover_abandoned_carts, "interval", minutes=30, id="abandoned_cart_recovery")
+        scheduler.start()
+        print("  📅 Scheduler de recuperación iniciado (cada 30 min)")
+        return scheduler
+    except Exception as e:
+        print(f"  ⚠️ No se pudo iniciar scheduler: {e}")
+        return None
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PAYMENT_PORT", "5002"))
     print(f"💳 Payment server en http://localhost:{port}")
     print(f"   Stripe: {'✅ configurado' if STRIPE_SECRET_KEY else '❌ sin STRIPE_SECRET_KEY'}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    recovery_scheduler = start_recovery_scheduler()
+    try:
+        app.run(host="0.0.0.0", port=port, debug=False)
+    finally:
+        if recovery_scheduler:
+            recovery_scheduler.shutdown()

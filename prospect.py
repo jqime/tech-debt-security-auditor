@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 import csv
+import json
 import os
 import random
+import re
+import subprocess
 import sys
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 DATA_DIR = Path(__file__).parent / "data"
 OUTPUT_FILE = DATA_DIR / "leads.csv"
+DOMAIN = os.getenv("DOMAIN", "http://localhost:5001")
 
 MOCK_COMPANIES = [
     {"name": "InnovaDev SL", "web": "innovadev.es", "email": "info@innovadev.es", "phone": "+34 91 123 45 01"},
@@ -56,14 +62,142 @@ def print_leads(leads: list[dict]):
         print(f"     Tel:    {lead['phone']}")
 
 
+def scrape_github_commits(topic: str = "fintech", max_repos: int = 5) -> list[dict]:
+    """Scrapea commits públicos de GitHub para extraer emails de desarrolladores."""
+    leads = []
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+    headers = ["Accept: application/vnd.github.v3+json"]
+    if GITHUB_TOKEN:
+        headers.append(f"Authorization: token {GITHUB_TOKEN}")
+
+    print(f"🔍 Buscando repositorios sobre '{topic}' en GitHub...")
+    search_url = f"https://api.github.com/search/repositories?q={topic}+in:topics+language:python&sort=stars&per_page={max_repos}"
+    try:
+        import urllib.request
+        req = urllib.request.Request(search_url, headers={
+            "Accept": "application/vnd.github.v3+json",
+            **({"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}),
+        })
+        resp = urllib.request.urlopen(req, timeout=30)
+        repos = json.loads(resp.read().decode()).get("items", [])
+
+        for repo in repos[:max_repos]:
+            repo_name = repo["full_name"]
+            repo_url = repo["clone_url"]
+            description = repo.get("description", "") or ""
+            stars = repo.get("stargazers_count", 0)
+            lang = repo.get("language", "Unknown")
+
+            print(f"   📦 {repo_name} ({stars}⭐, {lang})")
+
+            # Try to get commit authors
+            commits_url = f"https://api.github.com/repos/{repo_name}/commits?per_page=10"
+            try:
+                req2 = urllib.request.Request(commits_url, headers={
+                    "Accept": "application/vnd.github.v3+json",
+                    **({"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}),
+                })
+                resp2 = urllib.request.urlopen(req2, timeout=15)
+                commits = json.loads(resp2.read().decode())
+                for commit in commits:
+                    author = commit.get("commit", {}).get("author", {})
+                    name = author.get("name", "")
+                    email = author.get("email", "")
+                    if email and "@" in email and not email.endswith("@github.com") and not email.endswith("@users.noreply.github.com"):
+                        if not any(l["email"] == email for l in leads):
+                            company = repo_name.split("/")[0]
+                            leads.append({
+                                "name": name,
+                                "web": f"https://github.com/{repo_name.split('/')[0]}",
+                                "email": email,
+                                "phone": "",
+                                "city": "",
+                                "radius_km": 0,
+                                "repo_url": repo_url,
+                                "repo_name": repo_name,
+                                "description": description[:120],
+                                "stars": stars,
+                                "topic": topic,
+                                "source": "github_commits",
+                                "created_at": datetime.now().isoformat(),
+                            })
+                            print(f"      → Lead: {name} <{email}>")
+            except Exception as e:
+                print(f"      ⚠️  Error obteniendo commits: {e}")
+
+        print(f"   ✅ {len(leads)} leads extraídos de GitHub")
+    except ImportError:
+        print("   ⚠️  urllib no disponible")
+    except Exception as e:
+        print(f"   ⚠️  Error scraping GitHub: {e}")
+
+    return leads
+
+
+def inject_into_drip(leads: list[dict]):
+    """Inyecta leads directamente en la secuencia de email marketing."""
+    if not leads:
+        return
+    print(f"\n📧 Inyectando {len(leads)} leads en campaña de goteo regulatorio...")
+    for lead in leads:
+        repo_url = lead.get("repo_url", lead.get("web", ""))
+        email = lead["email"]
+        demo_data = {
+            "repo_name": lead.get("repo_name", repo_url.split("/")[-1] if "/" in repo_url else "código"),
+            "score": 45,
+            "fine": "10.000.000",
+            "hidden_count": 12,
+            "n_criticos": 3,
+            "sector": f"las empresas de {lead.get('topic', 'tecnología')}",
+            "price": 299,
+            "findings_summary": f"3 críticos y varios hallazgos totales (demo simulada)",
+        }
+        try:
+            from email_sequences import send_sequence
+            send_sequence(email, demo_data)
+            print(f"   ✅ Secuencia iniciada para {email}")
+        except Exception as e:
+            print(f"   ⚠️  Error inyectando {email}: {e}")
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Uso: python3 prospect.py <CIUDAD> [radio_km]")
+        print("Uso: python3 prospect.py <CIUDAD|--github <topic>> [radio_km]")
         print("Ej:  python3 prospect.py Madrid")
+        print("Ej:  python3 prospect.py --github fintech")
+        print("Ej:  python3 prospect.py --github python --drip")
         sys.exit(1)
 
+    do_drip = "--drip" in sys.argv
+
+    if sys.argv[1] == "--github":
+        topic = sys.argv[2] if len(sys.argv) > 2 else "python"
+        leads = scrape_github_commits(topic)
+        if leads:
+            # Save to DB leads table
+            try:
+                from app.db import get_db
+                db = get_db()
+                for lead in leads:
+                    db.execute(
+                        "INSERT INTO leads (nombre, email, repo_url, mensaje, converted) VALUES (?, ?, ?, ?, 0)",
+                        (lead["name"], lead["email"], lead.get("repo_url", ""),
+                         f"GitHub prospect - {lead.get('topic', '')} - {lead.get('repo_name', '')}"),
+                    )
+                db.commit()
+                db.close()
+            except Exception:
+                pass
+            # Save CSV
+            save_leads(leads)
+            print_leads(leads)
+            # Optional: inject into drip campaign
+            if do_drip:
+                inject_into_drip(leads)
+        return
+
     city = sys.argv[1]
-    radius = int(sys.argv[2]) if len(sys.argv) > 2 else 50
+    radius = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 50
 
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
@@ -102,6 +236,8 @@ def main():
     save_leads(leads)
     print_leads(leads)
     print(f"\n📁 CSV completo disponible en: {OUTPUT_FILE}")
+    if do_drip:
+        inject_into_drip(leads)
 
 
 if __name__ == "__main__":

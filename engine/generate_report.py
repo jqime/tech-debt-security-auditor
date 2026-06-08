@@ -421,6 +421,10 @@ Visita <strong style="color:#2563eb">codeauditpro.com/verify/{report_id}</strong
 <div class="footer">
 <div class="co">CodeAudit Pro — Tech Debt & Security Auditor</div>
 <div class="verify">Para verificar este informe: codeauditpro.com/verify · NIS2/DORA Compliance Engine v2.0 · {ts}</div>
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:0.75rem;color:#9ca3af">
+¿Tu empresa cumple con NIS2 y DORA? 
+<a href="https://codeauditpro.com/try-now" style="color:#2563eb;font-weight:600;text-decoration:none">Escanea tu repositorio gratis →</a>
+</div>
 </div>
 </div>
 
