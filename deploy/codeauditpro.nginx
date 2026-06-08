@@ -1,0 +1,113 @@
+# ── CodeAudit Pro — Nginx Reverse Proxy ──────────────────────────────
+# Instalar en /etc/nginx/sites-available/codeauditpro
+# Activar: ln -s /etc/nginx/sites-available/codeauditpro /etc/nginx/sites-enabled/
+# Verificar: nginx -t
+# Recargar: systemctl reload nginx
+
+limit_req_zone $binary_remote_addr zone=audit_api_limit:10m rate=5r/s;
+
+# ── HTTP → HTTPS forzado ─────────────────────────────────────────
+server {
+    listen 80;
+    server_name codeauditpro.com *.codeauditpro.com;
+    return 301 https://$host$request_uri;
+}
+
+# ── HTTPS ─────────────────────────────────────────────────────────
+server {
+    listen 443 ssl http2;
+    server_name codeauditpro.com *.codeauditpro.com;
+
+    # ── SSL (Certbot / Let's Encrypt) ─────────────────────────
+    ssl_certificate /etc/letsencrypt/live/codeauditpro.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/codeauditpro.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # ── Cabeceras de seguridad ────────────────────────────────
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self' https://js.stripe.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com; connect-src 'self' https://api.stripe.com;" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    # ── Rate limiting ─────────────────────────────────────────
+    limit_req zone=audit_api_limit burst=10 nodelay;
+
+    # ── Límite de tamaño de cuerpo (webhooks pueden ser grandes) ─
+    client_max_body_size 10M;
+
+    # ── 1. Dashboard + Frontend + Demo SSE (puerto 5000) ──────
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Soporte SSE (Server-Sent Events) — sin buffering
+        proxy_set_header Connection '';
+        proxy_http_version 1.1;
+        chunked_transfer_encoding off;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 24h;
+    }
+
+    # ── 2. Landing API (puerto 5001) ──────────────────────────
+    location /api/landing/ {
+        proxy_pass http://127.0.0.1:5001/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── 3. Payments / Stripe Webhooks (puerto 5002) ───────────
+    location /api/payments/ {
+        proxy_pass http://127.0.0.1:5002/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Sin buffering para webhooks
+        proxy_buffering off;
+        proxy_read_timeout 30s;
+    }
+
+    # ── 4. GitHub Webhooks — Auditoría Continua (puerto 5003) ─
+    location /webhook/github {
+        proxy_pass http://127.0.0.1:5003;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Sin buffering para webhooks
+        proxy_buffering off;
+        proxy_read_timeout 30s;
+    }
+
+    # ── Archivos estáticos (caché largo) ──────────────────────
+    location /static/ {
+        root /opt/codeauditpro;
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # ── Denegar acceso a archivos sensibles ────────────────────
+    location ~ /\.env {
+        deny all;
+        return 404;
+    }
+    location ~ /\.git {
+        deny all;
+        return 404;
+    }
+}

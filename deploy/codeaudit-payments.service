@@ -1,0 +1,21 @@
+[Unit]
+Description=CodeAudit Pro — Payments / Stripe Webhooks
+Documentation=https://github.com/jqime/tech-debt-security-auditor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/codeauditpro
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 payment.py
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateDevices=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
