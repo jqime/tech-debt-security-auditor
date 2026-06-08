@@ -1,9 +1,5 @@
-[project]
-name = "codeauditpro"
-description = "CodeAudit Pro - NIS2/DORA Security Audit SaaS"
-
 [build]
-builder = "DOCKER_COMPOSE"
+builder = "DOCKERFILE"
 
 [deploy]
 strategy = "IMMEDIATE"

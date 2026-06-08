@@ -19,6 +19,6 @@ COPY . .
 
 RUN chmod +x run_audit.sh deploy.sh test_compliance.sh
 
-EXPOSE 5000 5001 5002 5003
+EXPOSE $PORT
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.dashboard.app:app"]
+CMD gunicorn --bind 0.0.0.0:$PORT app.dashboard.app:app

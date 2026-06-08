@@ -511,8 +511,8 @@ def start_recovery_scheduler():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PAYMENT_PORT", "5002"))
-    print(f"💳 Payment server en http://localhost:{port}")
+    port = int(os.getenv("PORT", os.getenv("PAYMENT_PORT", "5002")))
+    print(f"💳 Payment server en http://0.0.0.0:{port}")
     print(f"   Stripe: {'✅ configurado' if STRIPE_SECRET_KEY else '❌ sin STRIPE_SECRET_KEY'}")
     recovery_scheduler = start_recovery_scheduler()
     try:

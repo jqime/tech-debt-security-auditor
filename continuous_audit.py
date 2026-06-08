@@ -17,7 +17,7 @@ DATA_DIR = PROJECT_DIR / "data" / "continuous_audits"
 WEBHOOK_LOG = DATA_DIR / "webhook_log.jsonl"
 SCHEDULES_FILE = DATA_DIR / "schedules.json"
 HISTORY_FILE = DATA_DIR / "history.json"
-PORT = int(os.getenv("CONTINUOUS_PORT", "5003"))
+PORT = int(os.getenv("PORT", os.getenv("CONTINUOUS_PORT", "5003")))
 GITHUB_WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET", "")
 
 try:

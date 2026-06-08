@@ -806,7 +806,7 @@ const j=await resp.json();if(j.url)window.location.href=j.url;else alert('Error:
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("DASHBOARD_PORT", "5000"))
-    print(f"📊 Dashboard en http://localhost:{port}")
-    print(f"🔬 Demo gratis: http://localhost:{port}/try-now")
+    port = int(os.getenv("PORT", os.getenv("DASHBOARD_PORT", "5000")))
+    print(f"📊 Dashboard en http://0.0.0.0:{port}")
+    print(f"🔬 Demo gratis: http://0.0.0.0:{port}/try-now")
     app.run(host="0.0.0.0", port=port, debug=False)
