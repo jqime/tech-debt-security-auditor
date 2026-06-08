@@ -1,11 +1,8 @@
-[project]
-name = "codeauditpro"
-description = "CodeAudit Pro - NIS2/DORA Security Audit SaaS"
-
 [build]
-builder = "DOCKER_COMPOSE"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-strategy = "IMMEDIATE"
-healthcheck_path = "/health"
-healthcheck_timeout = 30
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ALWAYS"
