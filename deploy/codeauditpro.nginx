@@ -42,9 +42,9 @@ server {
     # ── Límite de tamaño de cuerpo (webhooks pueden ser grandes) ─
     client_max_body_size 10M;
 
-    # ── 1. Dashboard + Frontend + Demo SSE (puerto 5000) ──────
+    # ── 1. Landing page + Demo (puerto 5001) ──────────────────
     location / {
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:5001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -59,13 +59,21 @@ server {
         proxy_read_timeout 24h;
     }
 
-    # ── 2. Landing API (puerto 5001) ──────────────────────────
-    location /api/landing/ {
-        proxy_pass http://127.0.0.1:5001/;
+    # ── 2. Dashboard + Frontend (puerto 5000) ─────────────────
+    location /dashboard/ {
+        proxy_pass http://127.0.0.1:5000/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Soporte SSE
+        proxy_set_header Connection '';
+        proxy_http_version 1.1;
+        chunked_transfer_encoding off;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 24h;
     }
 
     # ── 3. Payments / Stripe Webhooks (puerto 5002) ───────────
@@ -75,8 +83,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Sin buffering para webhooks
         proxy_buffering off;
         proxy_read_timeout 30s;
     }
@@ -88,10 +94,23 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Sin buffering para webhooks
         proxy_buffering off;
         proxy_read_timeout 30s;
+    }
+
+    # ── 5. Crear sesión de pago Stripe (desde landing/dashboard) ─
+    location /create-checkout {
+        proxy_pass http://127.0.0.1:5002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── 6. Health checks internos — acceso restringido ─────────
+    location /health {
+        access_log off;
+        return 200 "OK\n";
     }
 
     # ── Archivos estáticos (caché largo) ──────────────────────

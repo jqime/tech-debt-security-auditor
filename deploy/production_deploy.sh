@@ -1,6 +1,6 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────────────────
-#  CodeAudit Pro — Despliegue Producción (Systemd + Nginx + SSL)
+#  CodeAudit Pro — Despliegue Producción (Docker + Nginx + SSL)
 #  Uso: sudo bash deploy/production_deploy.sh
 # ──────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -12,13 +12,7 @@ INSTALL_DIR="/opt/codeauditpro"
 DEPLOY_DIR="$PROJECT_SRC/deploy"
 NGINX_AVAILABLE="/etc/nginx/sites-available"
 NGINX_ENABLED="/etc/nginx/sites-enabled"
-SYSTEMD_DIR="/etc/systemd/system"
-SERVICES=(
-    "codeaudit-dashboard"
-    "codeaudit-landing"
-    "codeaudit-payments"
-    "codeaudit-continuous"
-)
+COMPOSE_PROJECT="codeauditpro"
 
 # ── Colores ──────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -44,16 +38,16 @@ echo ""
 info "Instalando dependencias del sistema..."
 if command -v apt-get &>/dev/null; then
     apt-get update -qq
-    apt-get install -y -qq python3 python3-pip python3-venv git nginx certbot python3-certbot-nginx openssl curl
+    apt-get install -y -qq docker.io docker-compose-plugin nginx certbot python3-certbot-nginx curl
 elif command -v yum &>/dev/null; then
-    yum install -y python3 python3-pip git nginx certbot python3-certbot-nginx openssl curl
+    yum install -y docker docker-compose nginx certbot python3-certbot-nginx curl
 else
     err "SO no soportado. Usa Debian/Ubuntu o CentOS/RHEL."
     exit 1
 fi
 ok "Dependencias instaladas"
 
-# ── 2. Clonar / copiar código ────────────────────────────────
+# ── 2. Copiar código ────────────────────────────────────────
 info "Instalando código en $INSTALL_DIR..."
 if [[ "$PROJECT_SRC" != "$INSTALL_DIR" ]]; then
     if [[ -d "$INSTALL_DIR" ]]; then
@@ -65,29 +59,17 @@ fi
 cd "$INSTALL_DIR"
 ok "Código instalado en $INSTALL_DIR"
 
-# ── 3. Entorno virtual y dependencias Python ─────────────────
-info "Configurando entorno virtual Python..."
-if [[ ! -d venv ]]; then
-    python3 -m venv venv
-fi
-source venv/bin/activate
-pip install -q --upgrade pip
-pip install -q -r requirements.txt
-deactivate
-ok "Dependencias Python instaladas"
-
-# ── 4. Variables de entorno ──────────────────────────────────
+# ── 3. Variables de entorno ─────────────────────────────────
 if [[ ! -f .env ]]; then
     warn "No se encontró .env. Creando desde .env.example..."
     cp .env.example .env
     echo -e "${YELLOW}⚠️  EDITAR .env ANTES DE CONTINUAR:${NC}"
     echo "   nano $INSTALL_DIR/.env"
-    echo "   Luego ejecuta: sudo systemctl daemon-reload && sudo systemctl restart codeaudit-dashboard"
-    echo "   (pulsa Enter cuando hayas configurado .env, o Ctrl+C para salir)"
+    echo "   Luego pulsa Enter para continuar, o Ctrl+C para salir"
     read -r
 fi
 
-# ── 5. Cifrado del .env (opcional) ──────────────────────────
+# ── 4. Cifrado del .env ─────────────────────────────────────
 if [[ ! -f /etc/codeaudit.key ]]; then
     info "Generando clave maestra para cifrado de .env..."
     mkdir -p /etc/codeaudit
@@ -97,33 +79,13 @@ if [[ ! -f /etc/codeaudit.key ]]; then
     ok "Archivo .env cifrado como .env.enc"
 fi
 
-# ── 6. Instalar systemd services ─────────────────────────────
-info "Instalando servicios systemd..."
-for svc in "${SERVICES[@]}"; do
-    src="$DEPLOY_DIR/$svc.service"
-    if [[ -f "$src" ]]; then
-        # Modificar WorkingDirectory al install_dir real
-        sed "s|/opt/codeauditpro|$INSTALL_DIR|g" "$src" > "$SYSTEMD_DIR/$svc.service"
+# ── 5. Levantar contenedores Docker ─────────────────────────
+info "Construyendo y levantando contenedores Docker..."
+docker compose -p "$COMPOSE_PROJECT" down --remove-orphans 2>/dev/null || true
+docker compose -p "$COMPOSE_PROJECT" up -d --build
+ok "Contenedores Docker levantados"
 
-        # Añadir LoadCredential si existe .env.enc
-        if [[ -f "$INSTALL_DIR/.env.enc" ]]; then
-            cat >> "$SYSTEMD_DIR/$svc.service" <<EOF
-
-# ── .env cifrado en RAM ──
-ExecStartPre=/bin/sh -c "/usr/bin/openssl enc -d -aes-256-cbc -in $INSTALL_DIR/.env.enc -out /run/codeaudit/.env -pass file:/etc/codeaudit.key 2>/dev/null; mkdir -p /run/codeaudit"
-RuntimeDirectory=codeaudit
-EnvironmentFile=/run/codeaudit/.env
-EOF
-        fi
-
-        chmod 644 "$SYSTEMD_DIR/$svc.service"
-        ok "  $svc.service instalado"
-    else
-        warn "  $svc.service no encontrado en $src"
-    fi
-done
-
-# ── 7. Instalar configuración Nginx ──────────────────────────
+# ── 6. Configurar Nginx ──────────────────────────────────
 info "Configurando Nginx..."
 NGINX_CONF="$NGINX_AVAILABLE/codeauditpro"
 if [[ -f "$DEPLOY_DIR/codeauditpro.nginx" ]]; then
@@ -137,7 +99,7 @@ if [[ -f "$DEPLOY_DIR/codeauditpro.nginx" ]]; then
     ok "Configuración Nginx instalada para $DOMAIN"
 fi
 
-# ── 8. Certificado SSL (Let's Encrypt) ───────────────────────
+# ── 7. Certificado SSL (Let's Encrypt) ──────────────────────
 if [[ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]]; then
     info "Solicitando certificado SSL para $DOMAIN..."
     certbot --nginx -d "$DOMAIN" -d "*.$DOMAIN" --non-interactive --agree-tos -m "$ADMIN_EMAIL" || {
@@ -148,29 +110,27 @@ else
     ok "Certificado SSL ya existe para $DOMAIN"
 fi
 
-# ── 9. Verificar Nginx ───────────────────────────────────────
+# ── 8. Verificar Nginx ──────────────────────────────────────
 nginx -t && ok "Configuración Nginx válida" || err "Nginx tiene errores de sintaxis"
 
-# ── 10. Activar e iniciar servicios ──────────────────────────
-info "Arrancando servicios..."
-systemctl daemon-reload
-
-for svc in "${SERVICES[@]}"; do
-    systemctl enable --now "$svc" 2>/dev/null && ok "  $svc activo" || warn "  $svc falló al arrancar"
-done
-
+# ── 9. Recargar Nginx ───────────────────────────────────────
 systemctl reload nginx 2>/dev/null || systemctl restart nginx
 ok "Nginx recargado"
 
-# ── 11. Health check ─────────────────────────────────────────
+# ── 10. Health check ────────────────────────────────────────
 echo ""
-info "Verificando estado de los servicios..."
-sleep 2
-for svc in "${SERVICES[@]}"; do
-    if systemctl is-active --quiet "$svc"; then
-        ok "  $svc  →  activo"
+info "Verificando estado de los contenedores..."
+sleep 3
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+echo ""
+info "Verificando accesibilidad HTTP..."
+for port in 5000 5001 5002 5003; do
+    code=$(curl -so /dev/null -w '%{http_code}' "http://127.0.0.1:$port" 2>/dev/null || echo "000")
+    if [[ "$code" != "000" ]]; then
+        ok "  Puerto $port → HTTP $code"
     else
-        err "  $svc  →  INACTIVO (logs: journalctl -u $svc -n 50)"
+        err "  Puerto $port → SIN RESPUESTA"
     fi
 done
 
@@ -179,19 +139,17 @@ echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}  🎉 CodeAudit Pro desplegado en producción${NC}"
 echo -e "${GREEN}==========================================${NC}"
 echo ""
-echo "   📊 Dashboard:  https://$DOMAIN/"
-echo "   💳 Pagos:      https://$DOMAIN/api/payments/"
-echo "   🤖 Webhooks:   https://$DOMAIN/webhook/github"
+echo "   🌐 Sitio:       https://$DOMAIN/"
+echo "   📊 Dashboard:   https://$DOMAIN/dashboard/"
+echo "   💳 Pagos:       https://$DOMAIN/api/payments/"
+echo "   🤖 Webhooks:    https://$DOMAIN/webhook/github"
 echo ""
 echo "   📝 Logs:"
-echo "     journalctl -u codeaudit-dashboard -f"
-echo "     journalctl -u codeaudit-landing -f"
-echo "     journalctl -u codeaudit-payments -f"
-echo "     journalctl -u codeaudit-continuous -f"
+echo "     docker logs -f ${COMPOSE_PROJECT}-dashboard-1"
+echo "     docker logs -f ${COMPOSE_PROJECT}-landing-1"
+echo "     docker logs -f ${COMPOSE_PROJECT}-payment-1"
+echo "     docker logs -f ${COMPOSE_PROJECT}-continuous-audit-1"
+echo "     docker logs -f ${COMPOSE_PROJECT}-runner-1"
 echo ""
-
-# ── Runner daemon independiente ──────────────────────────────
-info "El Runner daemon se ejecuta junto al dashboard."
-echo "   Para lanzar el worker manual:"
-echo "     cd $INSTALL_DIR && source venv/bin/activate && python3 runner.py --daemon"
+echo "   🔄 Actualizar:  docker compose -p $COMPOSE_PROJECT pull && docker compose -p $COMPOSE_PROJECT up -d"
 echo ""
