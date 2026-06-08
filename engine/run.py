@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 PROJECT_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
 
 from engine.health_check import check_tools, ToolMissingError
 check_tools(raise_on_missing=True)
@@ -150,7 +151,7 @@ def run_lizard(repo_path):
         import re
         grades = re.findall(r'\((\w)\)', out2)
         score = sum({"A": 1, "B": 2, "C": 3, "D": 4, "F": 5}.get(g, 3) for g in grades) / max(len(grades), 1)
-        avg = scores.get("average_complexity", 2.0) if False else round(score, 1)
+        avg = round(score, 1)
         return {"average_complexity": avg, "total_lines": 0}
     return None
 
@@ -187,18 +188,30 @@ def main():
 
     write_status(audit_id, "secrets", "running", {"message": "Escaneando secretos (truffleHog + Semgrep)..."})
     print("🔒 [1/5] Escaneando secretos (truffleHog + Semgrep)...")
-    th_secrets = run_trufflehog(repo_path)
-    print(f"   truffleHog: {len(th_secrets)} hallazgos")
-    sm_secrets, sm_vulns = run_semgrep(repo_path)
-    print(f"   Semgrep: {len(sm_secrets)} secretos, {len(sm_vulns)} vulnerabilidades")
+    try:
+        th_secrets = run_trufflehog(repo_path)
+        print(f"   truffleHog: {len(th_secrets)} hallazgos")
+    except Exception as e:
+        print(f"   ⚠️ truffleHog falló: {e}")
+        th_secrets = []
+    try:
+        sm_secrets, sm_vulns = run_semgrep(repo_path)
+        print(f"   Semgrep: {len(sm_secrets)} secretos, {len(sm_vulns)} vulnerabilidades")
+    except Exception as e:
+        print(f"   ⚠️ Semgrep falló: {e}")
+        sm_secrets, sm_vulns = [], []
     secrets.extend(th_secrets)
     secrets.extend(sm_secrets)
     write_status(audit_id, "secrets", "done", {"secrets_found": len(secrets)})
 
     write_status(audit_id, "sast", "running", {"message": "Escaneando SAST Python (bandit)..."})
     print("🔐 [2/5] Escaneando SAST Python (bandit)...")
-    bandit_findings = run_bandit(repo_path)
-    print(f"   bandit: {len(bandit_findings)} hallazgos")
+    try:
+        bandit_findings = run_bandit(repo_path)
+        print(f"   bandit: {len(bandit_findings)} hallazgos")
+    except Exception as e:
+        print(f"   ⚠️ Bandit falló: {e}")
+        bandit_findings = []
     for b in bandit_findings:
         if b.get("severity", "").upper() in ("HIGH", "MEDIUM"):
             vulns.append(b)
@@ -206,8 +219,12 @@ def main():
 
     write_status(audit_id, "deps", "running", {"message": "Escaneando dependencias (Trivy)..."})
     print("📦 [3/5] Escaneando dependencias (Trivy)...")
-    trivy_vulns = run_trivy(repo_path)
-    print(f"   Trivy: {len(trivy_vulns)} vulnerabilidades")
+    try:
+        trivy_vulns = run_trivy(repo_path)
+        print(f"   Trivy: {len(trivy_vulns)} vulnerabilidades")
+    except Exception as e:
+        print(f"   ⚠️ Trivy falló: {e}")
+        trivy_vulns = []
     vulns.extend(trivy_vulns)
     vulns.extend(sm_vulns)
     write_status(audit_id, "deps", "done", {"vulns_found": len(trivy_vulns)})
@@ -223,8 +240,16 @@ def main():
 
     write_status(audit_id, "debt", "running", {"message": "Midiendo deuda técnica..."})
     print("📊 [4/5] Midiendo deuda técnica (lizard/radon)...")
-    debt = run_lizard(repo_path) or {}
-    dup = run_radon_dup(repo_path) or {}
+    debt = {}
+    dup = {}
+    try:
+        debt = run_lizard(repo_path) or {}
+    except Exception as e:
+        print(f"   ⚠️ Lizard/Radon falló: {e}")
+    try:
+        dup = run_radon_dup(repo_path) or {}
+    except Exception as e:
+        print(f"   ⚠️ Radon dup falló: {e}")
     debt.update(dup)
     write_status(audit_id, "debt", "done", {"complexity": debt.get("average_complexity", "N/A")})
 

@@ -165,10 +165,16 @@ def stripe_webhook():
             db.close()
 
             db = get_db()
-            db.execute(
-                "INSERT INTO payments (user_id, stripe_session_id, amount, currency, status) VALUES (?, ?, ?, ?, 'completed')",
-                (user_id, session.get("id", ""), PRODUCTS.get(plan, {}).get("price_cents", 0), "eur"),
-            )
+            existing_payment = db.execute(
+                "SELECT id FROM payments WHERE stripe_session_id = ?", (session.get("id", ""),
+            )).fetchone()
+            if existing_payment:
+                print(f"  ⚠️ Evento duplicado ignorado (session {session.get('id', '')})")
+            else:
+                db.execute(
+                    "INSERT INTO payments (user_id, stripe_session_id, amount, currency, status) VALUES (?, ?, ?, ?, 'completed')",
+                    (user_id, session.get("id", ""), PRODUCTS.get(plan, {}).get("price_cents", 0), "eur"),
+                )
             db.commit()
             db.close()
 

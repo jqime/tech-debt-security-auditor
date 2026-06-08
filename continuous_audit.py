@@ -46,13 +46,25 @@ def log_webhook(event_type: str, payload: dict):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def verify_signature(payload_data: bytes, signature_header: str) -> bool:
+def verify_signature(payload_data: bytes, sig_256: str, sig_1: str = "") -> bool:
     if not GITHUB_WEBHOOK_SECRET:
+        print("  ⚠️  GITHUB_WEBHOOK_SECRET no configurado — saltando verificación")
         return True
-    expected = "sha256=" + hmac.new(
+    if not sig_256 and not sig_1:
+        print("  ❌ Firma HMAC ausente — rechazando")
+        return False
+    expected_256 = "sha256=" + hmac.new(
         GITHUB_WEBHOOK_SECRET.encode(), payload_data, hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(expected, signature_header)
+    if sig_256 and hmac.compare_digest(expected_256, sig_256):
+        return True
+    expected_1 = "sha1=" + hmac.new(
+        GITHUB_WEBHOOK_SECRET.encode(), payload_data, hashlib.sha1
+    ).hexdigest()
+    if sig_1 and hmac.compare_digest(expected_1, sig_1):
+        return True
+    print("  ❌ Firma HMAC inválida — rechazando")
+    return False
 
 
 def trigger_audit(repo_url: str, email: str = "cliente@ejemplo.com"):
@@ -132,9 +144,10 @@ def record_audit(repo_url: str, score: int | None = None):
 @app.route("/webhook/github", methods=["POST"])
 def webhook_github():
     payload_data = request.get_data()
-    sig = request.headers.get("X-Hub-Signature-256", "")
-    if not verify_signature(payload_data, sig):
-        return jsonify({"error": "Firma inválida"}), 401
+    sig_256 = request.headers.get("X-Hub-Signature-256", "")
+    sig_1 = request.headers.get("X-Hub-Signature", "")
+    if not verify_signature(payload_data, sig_256, sig_1):
+        return jsonify({"error": "Firma HMAC inválida"}), 401
 
     event = request.headers.get("X-GitHub-Event", "unknown")
     payload = request.get_json(silent=True) or {}

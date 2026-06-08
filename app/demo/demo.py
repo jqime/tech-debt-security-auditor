@@ -429,6 +429,8 @@ def stream_demo(demo_id):
     def generate():
         last_pct = -1
         while True:
+            if request.is_disconnected():
+                break
             if status_file.exists():
                 try:
                     data = status_file.read_text(encoding="utf-8").strip()

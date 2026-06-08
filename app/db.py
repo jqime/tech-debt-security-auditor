@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from pathlib import Path
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -19,8 +20,15 @@ class Database:
         if self._pg:
             import psycopg2
             import psycopg2.extras
-            self.conn = psycopg2.connect(DATABASE_URL)
-            self.conn.autocommit = False
+            for attempt in range(30):
+                try:
+                    self.conn = psycopg2.connect(DATABASE_URL)
+                    self.conn.autocommit = False
+                    return self.conn
+                except psycopg2.OperationalError:
+                    if attempt == 29:
+                        raise
+                    time.sleep(2)
             return self.conn
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(str(DB_PATH))
@@ -103,6 +111,14 @@ def init_db():
             duplication_score REAL,
             perimeter_score REAL,
             overall_score REAL,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS report_registry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            filename TEXT NOT NULL,
+            repo_url TEXT DEFAULT '',
             created_at TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS whitelabel_config (

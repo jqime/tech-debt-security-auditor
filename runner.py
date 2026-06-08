@@ -10,6 +10,14 @@ from pathlib import Path
 
 from app.db import get_db
 
+_REPORT_FILES = [
+    "executive-report.html",
+    "compliance-nis2.html",
+    "compliance-nis2.pdf",
+    "security-report.json",
+    "debt-report.json",
+]
+
 PROJECT_DIR = Path(__file__).parent
 MAX_CONCURRENT = int(os.getenv("RUNNER_CONCURRENCY", "3"))
 SLEEP_INTERVAL = int(os.getenv("RUNNER_INTERVAL", "30"))
@@ -69,6 +77,107 @@ def update_task(task_id: int, status: str, error: str = ""):
     db.close()
 
 
+def _get_compliance_score() -> int | None:
+    import re
+    html_path = PROJECT_DIR / "reports" / "compliance-nis2.html"
+    if not html_path.exists():
+        return None
+    m = re.search(r"overall[-_ ]?score[^>]*>\s*(\d+)", html_path.read_text(encoding="utf-8"), re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+
+def _trigger_integrations(repo_url: str, task_id: int):
+    siem_webhook = os.getenv("SIEM_WEBHOOK_URL", "")
+    jira_url = os.getenv("JIRA_URL", "")
+    jira_email = os.getenv("JIRA_EMAIL", "")
+    jira_token = os.getenv("JIRA_API_TOKEN", "")
+
+    if not siem_webhook and not (jira_url and jira_email and jira_token):
+        return
+
+    score = _get_compliance_score()
+    if score is not None and score >= 70:
+        print(f"  ℹ️  Score {score}/100 >= 70 — integraciones no requeridas")
+        return
+
+    sec_path = PROJECT_DIR / "reports" / "security-report.json"
+    if not sec_path.exists():
+        return
+
+    try:
+        sec_data = json.loads(sec_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+
+    secrets = sec_data.get("secrets", [])
+    vuln_deps = sec_data.get("vulnerable_dependencies", [])
+    critical = [v for v in vuln_deps if v.get("severity", "").upper() in ("CRITICAL", "HIGH")]
+
+    if not secrets and not critical:
+        print(f"  ℹ️  Sin hallazgos críticos — integraciones no requeridas")
+        return
+
+    # ── SIEM ─────────────────────────────────────────────────────────
+    if siem_webhook:
+        try:
+            sys.path.insert(0, str(PROJECT_DIR))
+            from integrations.siem import send_batch
+            hallazgos = []
+            for s in secrets:
+                hallazgos.append({
+                    "type": "secret",
+                    "severity": "CRITICAL",
+                    "file": s.get("file", ""),
+                    "line": s.get("line", 0),
+                    "reason": s.get("reason", "Secreto detectado"),
+                    "repo_url": repo_url,
+                })
+            for d in critical:
+                hallazgos.append({
+                    "type": "vulnerable_dependency",
+                    "severity": d.get("severity", "HIGH"),
+                    "file": d.get("file", ""),
+                    "line": d.get("line", 0),
+                    "reason": f"{d.get('name', '?')} - {d.get('title', '')}",
+                    "repo_url": repo_url,
+                })
+            ok, fail = send_batch(hallazgos)
+            print(f"  📡 SIEM: {ok} enviados, {fail} fallos")
+        except Exception as e:
+            print(f"  ⚠️  Error integración SIEM: {e}")
+
+    # ── Jira ──────────────────────────────────────────────────────────
+    if jira_url and jira_email and jira_token:
+        try:
+            sys.path.insert(0, str(PROJECT_DIR))
+            from integrations.jira import sync_findings
+            tickets = sync_findings()
+            if tickets:
+                print(f"  🎫 Jira: {len(tickets)} ticket(s) creados")
+        except Exception as e:
+            print(f"  ⚠️  Error integración Jira: {e}")
+
+
+def _register_reports(task_id: int, user_id: int, repo_url: str):
+    try:
+        db = get_db()
+        for fname in _REPORT_FILES:
+            if (PROJECT_DIR / "reports" / fname).exists():
+                existing = db.execute(
+                    "SELECT id FROM report_registry WHERE task_id = ? AND filename = ?",
+                    (task_id, fname),
+                ).fetchone()
+                if not existing:
+                    db.execute(
+                        "INSERT INTO report_registry (task_id, user_id, filename, repo_url) VALUES (?, ?, ?, ?)",
+                        (task_id, user_id, fname, repo_url),
+                    )
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"  ⚠️ Error registrando reportes: {e}")
+
+
 def process_task(task: dict) -> bool:
     task_id = task["id"]
     repo_url = task["repo_url"]
@@ -120,6 +229,16 @@ def process_task(task: dict) -> bool:
 
     if compliance_pdf.exists():
         print(f"  ✓ Compliance PDF generado")
+
+    # Register reports for multi-tenant access control
+    _register_reports(task_id, task.get("user_id", 0), repo_url)
+
+    # Fire async SIEM/Jira integrations
+    threading.Thread(
+        target=_trigger_integrations,
+        args=(repo_url, task_id),
+        daemon=True,
+    ).start()
 
     # Send email
     email_script = PROJECT_DIR / "email_sender.py"

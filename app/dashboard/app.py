@@ -617,6 +617,8 @@ def audit_status_sse(audit_id):
     def generate():
         last_data = None
         while True:
+            if request.is_disconnected():
+                break
             if status_file.exists():
                 try:
                     data = status_file.read_text(encoding="utf-8").strip()
@@ -634,10 +636,86 @@ def audit_status_sse(audit_id):
                     headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
 
-# ── Serve generated reports ───────────────────────────────────────
+# ── Serve generated reports (with paywall) ───────────────────────
+
+PREMIUM_REPORTS = {"executive-report.html", "compliance-nis2.html", "compliance-nis2.pdf"}
+
+def _owns_report(filename: str, user_id: int) -> bool:
+    db = get_db()
+    row = db.execute(
+        "SELECT user_id FROM report_registry WHERE filename = ? ORDER BY created_at DESC LIMIT 1",
+        (filename,),
+    ).fetchone()
+    db.close()
+    if row:
+        return row["user_id"] == user_id
+    return False
+
 
 @app.route("/reports/<path:filename>")
 def serve_report(filename):
+    if filename in PREMIUM_REPORTS:
+        if not current_user.is_authenticated:
+            return render_template_string("""<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Acceso restringido — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{background:#070d1a;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;min-height:100vh}
+.card{background:#0a1428;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:3rem;max-width:500px;margin:2rem auto;text-align:center}
+.lock{font-size:3.5rem;margin-bottom:1rem}
+h1{font-size:1.4rem;color:#f1f5f9;margin-bottom:.5rem}
+p{color:#94a3b8;font-size:.9rem;margin-bottom:1.5rem}
+.btn{display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;text-decoration:none}
+</style></head><body><div class="container"><div class="card">
+<div class="lock">🔒</div>
+<h1>Informe Premium Bloqueado</h1>
+<p>Debes iniciar sesión con una cuenta que tenga un plan activo para acceder a este informe completo.</p>
+<a href="/" class="btn">Iniciar sesión o registrarse</a>
+</div></div></body></html>"""), 403
+
+        if not _owns_report(filename, current_user.id):
+            db = get_db()
+            paid = db.execute(
+                "SELECT COUNT(*) as c FROM payments WHERE user_id = ? AND status = 'completed'",
+                (current_user.id,),
+            ).fetchone()["c"]
+            db.close()
+            if paid:
+                return render_template_string("""<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sin acceso al reporte — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{background:#070d1a;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;min-height:100vh}
+.card{background:#0a1428;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:3rem;max-width:500px;margin:2rem auto;text-align:center}
+.lock{font-size:3.5rem;margin-bottom:1rem}
+h1{font-size:1.4rem;color:#f1f5f9;margin-bottom:.5rem}
+p{color:#94a3b8;font-size:.9rem;margin-bottom:1.5rem}
+.btn{display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;text-decoration:none}
+</style></head><body><div class="container"><div class="card">
+<div class="lock">🔒</div>
+<h1>Reporte no disponible</h1>
+<p>Este reporte no pertenece a tu cuenta. Ejecuta una auditoría desde tu panel para generar tus propios informes.</p>
+<a href="/" class="btn">Ir al Dashboard</a>
+</div></div></body></html>"""), 403
+            return render_template_string("""<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sin plan activo — CodeAudit Pro</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>body{background:#070d1a;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;min-height:100vh}
+.card{background:#0a1428;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:3rem;max-width:500px;margin:2rem auto;text-align:center}
+.lock{font-size:3.5rem;margin-bottom:1rem}
+h1{font-size:1.4rem;color:#f1f5f9;margin-bottom:.5rem}
+p{color:#94a3b8;font-size:.9rem;margin-bottom:1.5rem}
+.btn{display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;text-decoration:none}
+.price{font-size:1.8rem;font-weight:800;color:#f59e0b;margin:1rem 0}
+</style></head><body><div class="container"><div class="card">
+<div class="lock">🔒</div>
+<h1>Sin plan activo</h1>
+<p>Necesitas un plan de pago para acceder al informe completo con cumplimiento NIS2/DORA, PDF descargable y certificación blockchain.</p>
+<div class="price">Desde 299 €</div>
+<a href="/#precios" class="btn">Ver planes disponibles</a>
+</div></div></body></html>"""), 403
+
     report_path = PROJECT_DIR / "reports" / filename
     if report_path.exists() and report_path.suffix in (".html", ".pdf", ".png"):
         return report_path.read_bytes() if report_path.suffix != ".html" else report_path.read_text(encoding="utf-8")

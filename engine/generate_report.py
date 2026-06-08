@@ -260,7 +260,7 @@ tr:last-child td{{border-bottom:none}}
 .footer{{text-align:center;padding:24px 0;border-top:1px solid #e5e7eb;margin-top:32px}}
 .footer .co{{font-weight:700;color:#2563eb;font-size:0.85rem}}
 .footer .verify{{color:#9ca3af;font-size:0.72rem;margin-top:4px}}
-@media print{{.cover{{min-height:auto;padding:40px 20px}} .page{{padding:30px 20px}} .page+h2{{page-break-before:always}}}}
+@page{{size:A4;margin:2cm;orphans:3;widows:3}} @page:first{{margin-top:3cm}} .table-wrap{{page-break-inside:auto}} .table-wrap table{{page-break-inside:auto}} .table-wrap tr{{page-break-inside:avoid;page-break-after:auto}} .table-wrap thead{{display:table-header-group}} .table-wrap tfoot{{display:table-footer-group}} .summary-box,.cert-box,.fine-box,.score-card{{page-break-inside:avoid}} @media print{{.cover{{min-height:auto;padding:40px 20px}} .page{{padding:30px 20px}} .page+h2{{page-break-before:always}}}}
 @media(max-width:700px){{.score-grid{{grid-template-columns:repeat(2,1fr)}} .page{{padding:30px 20px}}}}
 </style>
 </head>

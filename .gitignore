@@ -15,8 +15,9 @@ vendor/
 
 # Data files (runtime)
 data/*.db
-data/*.json
+data/**/*.json
 data/*.csv
+data/audit_status/
 !data/.gitkeep
 
 # Reports (generated)

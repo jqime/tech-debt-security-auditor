@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -87,8 +89,19 @@ def certify(report_name: str = "executive-report.html"):
     ots_status = try_opentimestamps(hash_hex)
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    with open(HASHES_LOG, "a", encoding="utf-8") as f:
-        f.write(f"{datetime.now().isoformat()} | {report_name} | SHA256:{hash_hex} | blockchain:{ots_status or 'none'}\n")
+    new_entry = f"{datetime.now().isoformat()} | {report_name} | SHA256:{hash_hex} | blockchain:{ots_status or 'none'}\n"
+    if HASHES_LOG.exists():
+        existing = HASHES_LOG.read_text(encoding="utf-8")
+    else:
+        existing = ""
+    fd, tmp_path = tempfile.mkstemp(dir=str(REPORTS_DIR), prefix=".hashes-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(existing + new_entry)
+        os.replace(tmp_path, str(HASHES_LOG))
+    except Exception:
+        os.unlink(tmp_path)
+        raise
 
     print(f"  ✓ Hash registrado en {HASHES_LOG}")
     print(f"  ✓ Bloque de integridad insertado en {report_path}")
