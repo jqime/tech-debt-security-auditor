@@ -3,341 +3,355 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>CodeAudit Pro — Auditoría NIS2 · Seguridad de Código</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<title>CodeAudit Pro — Cumplimiento NIS2/DORA automatizado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#070d1a;color:#f8fafc;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
-.navbar{background:rgba(7,13,26,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06)}
-.hero-section{padding:140px 0 80px;background:linear-gradient(135deg,#070d1a 0%,#0a1428 40%,#1a1040 100%);position:relative;overflow:hidden}
-.hero-section::before{content:'';position:absolute;top:-20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(245,158,11,0.08),transparent 70%);pointer-events:none}
-.hero-section::after{content:'';position:absolute;bottom:-30%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(99,102,241,0.08),transparent 70%);pointer-events:none}
-.hero-section h1{font-size:2.8rem;font-weight:800;line-height:1.15;background:linear-gradient(135deg,#f8fafc,#c7d2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-sub{color:#94a3b8;font-size:1.15rem;max-width:600px}
-.hero-stats{display:flex;gap:32px;margin-top:24px;flex-wrap:wrap}
-.hero-stat{font-size:0.82rem;color:#64748b;display:flex;align-items:center;gap:8px}
-.hero-stat i{color:#f59e0b;font-size:0.9rem}
-.section-title{font-weight:700;margin-bottom:3rem;color:#e2e8f0;text-align:center}
-.section-title span{background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.card-surface{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;transition:all 0.3s}
-.card-surface:hover{border-color:rgba(245,158,11,0.2)}
-.calculator-section{background:#0a1428;border-top:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04)}
-.form-control,.form-select{background:#070d1a;border:1px solid rgba(255,255,255,0.1);color:#f8fafc;border-radius:10px;padding:12px 14px;font-size:0.9rem}
-.form-control:focus,.form-select:focus{background:#070d1a;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.12);color:#f8fafc}
-.form-control::placeholder{color:#475569}
-.form-label{font-size:0.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
-.btn-primary-custom{background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:10px;padding:14px 36px;font-weight:700;font-size:0.95rem;color:#070d1a;transition:all 0.2s;text-decoration:none;display:inline-block}
-.btn-primary-custom:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.3);color:#070d1a}
-.btn-outline-custom{border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:14px 36px;font-weight:600;font-size:0.9rem;color:#e2e8f0;text-decoration:none;transition:all 0.2s;background:transparent;display:inline-block}
-.btn-outline-custom:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.25);color:#f8fafc}
-.result-card{background:linear-gradient(135deg,#0f1529,#0a1428);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:1.5rem;margin-top:1rem}
-.result-card .big-number{font-size:2.5rem;font-weight:800}
-.result-card .big-number.red{color:#ef4444}
-.result-card .big-number.green{color:#10b981}
-.result-card .big-number.gold{color:#f59e0b}
-.compare-table{width:100%;border-collapse:separate;border-spacing:0}
-.compare-table th,.compare-table td{padding:14px 20px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04)}
-.compare-table th{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;background:rgba(255,255,255,0.02);font-weight:700}
-.compare-table td{font-size:0.88rem;color:#cbd5e1}
-.compare-table tr:last-child td{border-bottom:none}
-.compare-table .highlight{color:#f59e0b;font-weight:600}
-.compare-table .check{color:#10b981}
-.compare-table .cross{color:#ef4444}
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem}
-.pricing-card{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem 1.5rem;text-align:center;transition:all 0.3s;position:relative}
-.pricing-card:hover{border-color:rgba(245,158,11,0.2);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
-.pricing-card.featured{border-color:#f59e0b;border-width:2px;background:linear-gradient(135deg,#0f1529,#1a1040)}
-.pricing-card.featured::before{content:'RECOMENDADO';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;padding:4px 16px;border-radius:20px;font-size:0.65rem;font-weight:800;letter-spacing:1px}
-.pricing-card .price{font-size:2.5rem;font-weight:800;color:#f8fafc;margin:0.5rem 0}
-.pricing-card .price small{font-size:0.9rem;color:#64748b;font-weight:400}
-.pricing-card .features{list-style:none;padding:0;margin:1rem 0;color:#94a3b8;text-align:left}
-.pricing-card .features li{padding:7px 0;font-size:0.82rem;display:flex;align-items:center;gap:8px}
-.pricing-card .features li i{color:#10b981}
-.pricing-card .btn-pricing{display:block;padding:12px;border-radius:10px;font-weight:600;font-size:0.88rem;text-decoration:none;transition:all 0.2s;margin-top:1.5rem}
-.pricing-card .btn-pricing.primary{background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a}
-.pricing-card .btn-pricing.primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(245,158,11,0.25)}
-.pricing-card .btn-pricing.secondary{background:rgba(255,255,255,0.06);color:#e2e8f0}
-.pricing-card .btn-pricing.secondary:hover{background:rgba(255,255,255,0.1)}
-.pricing-card .btn-pricing.outline{border:1px solid rgba(255,255,255,0.15);color:#94a3b8}
-.pricing-card .btn-pricing.outline:hover{background:rgba(255,255,255,0.05)}
-footer{border-top:1px solid rgba(255,255,255,0.06);color:#475569}
-.progress-area{background:#0a1428;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:2rem;margin-top:1.5rem;display:none}
-.progress-bar-track{background:rgba(255,255,255,0.06);border-radius:100px;height:8px;overflow:hidden;margin:1rem 0}
-.progress-bar-fill{height:8px;border-radius:100px;background:linear-gradient(90deg,#f59e0b,#10b981);width:0%;transition:width 0.4s cubic-bezier(0.34,1.56,0.64,1)}
-.demo-steps{display:flex;gap:12px;justify-content:center;margin:1rem 0;flex-wrap:wrap}
-.demo-step{font-size:0.78rem;color:#475569;display:flex;align-items:center;gap:6px}
-.demo-step.done{color:#10b981}
-.demo-step.active{color:#f59e0b}
-.error-msg{color:#ef4444;font-size:0.82rem;margin-top:6px;display:none}
-.paywall-result{background:linear-gradient(135deg,#0f1529,rgba(15,23,42,0.95));border:2px solid rgba(245,158,11,0.25);border-radius:20px;padding:2.5rem 2rem;text-align:center;position:relative;overflow:hidden;margin-top:1.5rem}
-.paywall-result::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(245,158,11,0.03),transparent 50%);pointer-events:none}
-.paywall-result .lock-icon{font-size:2.5rem;margin-bottom:0.75rem}
-.paywall-result h4{color:#f1f5f9;font-weight:700;margin-bottom:0.5rem}
-.paywall-result p{color:#64748b;font-size:0.88rem;max-width:450px;margin:0 auto 1.25rem}
-@media(max-width:768px){.hero-section h1{font-size:1.8rem}.hero-section{padding:100px 0 60px}.hero-stats{gap:16px}.pricing-grid{grid-template-columns:1fr}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg-body:#0b0f19;--bg-card:#131b2e;--bg-elevated:#1a2340;--border:#1e293b;--border-active:#334155;--text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#475569;--accent:#6366f1;--accent-glow:rgba(99,102,241,0.15);--amber:#f59e0b;--red:#ef4444;--green:#10b981;--cyan:#0ea5e9}
+html{scroll-behavior:smooth}
+body{background:var(--bg-body);color:var(--text-primary);font-family:'Inter','SF Pro Display',system-ui,-apple-system,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+/* ── Navbar ───────────────────────────────── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(11,15,25,0.85);backdrop-filter:blur(16px) saturate(1.8);-webkit-backdrop-filter:blur(16px) saturate(1.8);border-bottom:1px solid rgba(30,41,59,0.6);padding:0 24px;height:64px;display:flex;align-items:center}
+.navbar .container{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1120px;margin:0 auto}
+.navbar .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.navbar .logo svg{width:32px;height:32px}
+.navbar .logo span{font-weight:800;font-size:1.15rem;letter-spacing:-0.02em;color:var(--text-primary)}
+.navbar .logo span span{color:var(--accent)}
+.navbar .status{display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-muted);letter-spacing:0.02em}
+.navbar .status .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.4)}
+.navbar .status .dot.dim{background:var(--text-muted);box-shadow:none}
+.navbar .actions{display:flex;align-items:center;gap:16px}
+.navbar .actions a{text-decoration:none;font-size:0.82rem;font-weight:500;color:var(--text-secondary);transition:color 0.2s}
+.navbar .actions a:hover{color:var(--text-primary)}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;font-weight:600;font-size:0.85rem;border:none;text-decoration:none;cursor:pointer;transition:all 0.25s ease;position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(255,255,255,0.08) 50%,transparent 70%);background-size:200% 100%;background-position:100% 0;transition:background-position 0.6s}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(99,102,241,0.25)}
+.btn-primary:hover::after{background-position:0 0}
+.btn-primary:active{transform:translateY(0);box-shadow:none}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;color:var(--text-secondary);font-weight:500;font-size:0.85rem;text-decoration:none;transition:all 0.2s}
+.btn-ghost:hover{background:rgba(255,255,255,0.04);color:var(--text-primary)}
+.btn-glow{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#4f46e5);color:#fff;font-weight:700;font-size:0.95rem;border:none;text-decoration:none;cursor:pointer;transition:all 0.3s ease;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(99,102,241,0.15)}
+.btn-glow::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(transparent,rgba(255,255,255,0.1),transparent 30%);animation:rotateGlow 4s linear infinite}
+@keyframes rotateGlow{to{transform:rotate(360deg)}}
+.btn-glow:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(99,102,241,0.3)}
+.btn-glow:active{transform:translateY(0)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:12px;border:1px solid var(--border);color:var(--text-secondary);font-weight:600;font-size:0.88rem;text-decoration:none;transition:all 0.2s;background:transparent}
+.btn-secondary:hover{border-color:var(--border-active);background:rgba(255,255,255,0.03);color:var(--text-primary)}
+/* ── Hero ─────────────────────────────────── */
+.hero{padding:140px 0 80px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-30%;right:-15%;width:700px;height:700px;background:radial-gradient(circle,rgba(99,102,241,0.06),transparent 70%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-20%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(245,158,11,0.04),transparent 70%);pointer-events:none}
+.hero .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15);font-size:0.72rem;font-weight:600;color:var(--accent);margin-bottom:24px;letter-spacing:0.01em}
+.hero h1{font-size:clamp(2rem,4vw,3.2rem);font-weight:800;line-height:1.12;letter-spacing:-0.03em;margin-bottom:20px;max-width:800px}
+.hero h1 .gradient{background:linear-gradient(135deg,#e2e8f0,#a5b4fc,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.05rem;color:var(--text-secondary);max-width:580px;line-height:1.7;margin-bottom:32px}
+/* ── Scan Box ─────────────────────────────── */
+.scan-box{display:flex;gap:0;max-width:620px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:4px;transition:border-color 0.3s,box-shadow 0.3s;position:relative}
+.scan-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,0.1)}
+.scan-box input{flex:1;background:transparent;border:none;outline:none;padding:14px 18px;font-size:0.9rem;color:var(--text-primary);font-family:inherit}
+.scan-box input::placeholder{color:var(--text-muted)}
+.scan-box button{padding:12px 28px;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:0.85rem;border:none;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.scan-box button:hover{background:#4f46e5}
+.hero-stats{display:flex;gap:40px;margin-top:40px;flex-wrap:wrap}
+.hero-stat{font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:8px}
+.hero-stat .num{color:var(--text-primary);font-weight:700}
+/* ── Trust Section ────────────────────────── */
+.trust-section{padding:60px 0;border-top:1px solid rgba(30,41,59,0.4);border-bottom:1px solid rgba(30,41,59,0.4)}
+.trust-section .label{text-align:center;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:32px;font-weight:600}
+.trust-grid{display:flex;justify-content:center;gap:48px;flex-wrap:wrap;align-items:center}
+.trust-item{display:flex;align-items:center;gap:12px;color:var(--text-secondary);font-size:0.82rem;font-weight:500;opacity:0.7;transition:opacity 0.3s}
+.trust-item:hover{opacity:1}
+.trust-item svg{width:28px;height:28px;opacity:0.6}
+/* ── Section titles ───────────────────────── */
+.section{padding:80px 0}
+.section .label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);font-weight:700;margin-bottom:12px}
+.section h2{font-size:clamp(1.5rem,2.5vw,2rem);font-weight:800;letter-spacing:-0.02em;margin-bottom:16px}
+.section h2 .gradient{background:linear-gradient(135deg,#f1f5f9,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.section .sub{color:var(--text-secondary);font-size:0.95rem;max-width:560px;margin-bottom:48px}
+/* ── Feature Grid ─────────────────────────── */
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all 0.3s ease;position:relative;overflow:hidden}
+.feature-card:hover{border-color:var(--border-active);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,0.2)}
+.feature-card .icon{font-size:1.6rem;margin-bottom:16px;display:block}
+.feature-card h3{font-size:0.95rem;font-weight:700;margin-bottom:8px;color:var(--text-primary)}
+.feature-card p{font-size:0.82rem;color:var(--text-secondary);line-height:1.6}
+.feature-card .tag{display:inline-block;margin-top:12px;padding:3px 10px;border-radius:6px;font-size:0.65rem;font-weight:600;background:rgba(99,102,241,0.08);color:var(--accent)}
+/* ── Calculator ───────────────────────────── */
+.calc-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:40px;max-width:700px;margin:0 auto}
+.calc-card .result-number{font-size:3.5rem;font-weight:900;letter-spacing:-0.03em;line-height:1;background:linear-gradient(135deg,var(--red),#f43f5e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.calc-card .result-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:600;margin-top:4px}
+.calc-card .slider-group{margin-bottom:24px}
+.calc-card .slider-group label{display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px}
+.calc-card .slider-group label .value{font-weight:700;color:var(--text-primary)}
+input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:4px;outline:none;transition:background 0.2s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg-body);box-shadow:0 0 0 2px var(--accent);transition:all 0.2s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.1)}
+/* ── Results paywall preview ──────────────── */
+.result-preview{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.result-preview .header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);font-size:0.78rem;color:var(--text-secondary)}
+.result-preview .header .badge{background:rgba(99,102,241,0.08);color:var(--accent);padding:3px 10px;border-radius:6px;font-weight:600;font-size:0.65rem}
+.result-preview table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.result-preview th{padding:10px 20px;text-align:left;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:600;background:rgba(255,255,255,0.02)}
+.result-preview td{padding:12px 20px;border-top:1px solid rgba(30,41,59,0.4);color:var(--text-secondary)}
+.result-preview td .file{font-family:'SF Mono','Fira Code',monospace;font-size:0.75rem;color:var(--cyan)}
+.severity{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.65rem;font-weight:700}
+.severity.critical{background:rgba(239,68,68,0.12);color:var(--red)}
+.severity.high{background:rgba(245,158,11,0.12);color:var(--amber)}
+.severity.medium{background:rgba(251,191,36,0.1);color:#fbbf24}
+.severity.low{background:rgba(16,185,129,0.1);color:var(--green)}
+.result-preview .blur-row{position:relative}
+.result-preview .blur-row td{filter:blur(6px);user-select:none;pointer-events:none;transition:filter 0.4s}
+.result-preview .blur-row .overlay-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,15,25,0.6);backdrop-filter:blur(4px);font-size:0.75rem;color:var(--text-muted);font-weight:600;letter-spacing:0.02em}
+/* ── Paywall Overlay ──────────────────────── */
+.paywall{background:linear-gradient(135deg,var(--bg-card),rgba(15,23,42,0.95));border:2px solid rgba(99,102,241,0.2);border-radius:20px;padding:48px 40px;text-align:center;position:relative;overflow:hidden;margin-top:24px}
+.paywall::before{content:'';position:absolute;top:-60%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(99,102,241,0.03),transparent 50%);pointer-events:none}
+.paywall .lock{font-size:2.2rem;margin-bottom:12px}
+.paywall h3{font-size:1.3rem;font-weight:800;margin-bottom:8px;letter-spacing:-0.02em}
+.paywall p{color:var(--text-secondary);font-size:0.88rem;max-width:480px;margin:0 auto 20px}
+.paywall .price{font-size:2.8rem;font-weight:900;letter-spacing:-0.03em;background:linear-gradient(135deg,#fbbf24,var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:8px 0}
+.paywall .price small{font-size:1rem;color:var(--text-muted);-webkit-text-fill-color:var(--text-muted)}
+.paywall .trust-checks{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin:16px 0 24px;font-size:0.75rem;color:var(--text-muted)}
+.paywall .trust-checks span{display:flex;align-items:center;gap:6px}
+.paywall .trust-checks .check{color:var(--green)}
+.paywall .enterprise-hatch{margin-top:24px;padding-top:20px;border-top:1px solid rgba(30,41,59,0.4);font-size:0.78rem;color:var(--text-muted)}
+.paywall .enterprise-hatch a{color:var(--accent);text-decoration:none;font-weight:600}
+.paywall .enterprise-hatch a:hover{text-decoration:underline}
+/* ── Pricing ──────────────────────────────── */
+.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pricing-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;text-align:center;transition:all 0.3s;position:relative}
+.pricing-card:hover{border-color:var(--border-active);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.2)}
+.pricing-card.featured{border-color:var(--accent);background:linear-gradient(135deg,var(--bg-card),#1a1f3a)}
+.pricing-card.featured::before{content:'RECOMENDADO';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:3px 14px;border-radius:20px;font-size:0.6rem;font-weight:800;letter-spacing:0.06em}
+.pricing-card .plan-name{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:8px}
+.pricing-card .price{font-size:2.2rem;font-weight:900;letter-spacing:-0.03em;margin:8px 0}
+.pricing-card .price small{font-size:0.8rem;color:var(--text-muted);font-weight:500}
+.pricing-card .features{list-style:none;padding:0;margin:16px 0;text-align:left}
+.pricing-card .features li{padding:6px 0;font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;gap:8px}
+.pricing-card .features li::before{content:'✓';color:var(--green);font-weight:700}
+.pricing-card .btn-pricing{display:block;padding:12px;border-radius:10px;font-weight:600;font-size:0.82rem;text-decoration:none;transition:all 0.2s;margin-top:16px}
+.pricing-card .btn-pricing.primary{background:var(--accent);color:#fff}
+.pricing-card .btn-pricing.primary:hover{background:#4f46e5;transform:translateY(-1px)}
+.pricing-card .btn-pricing.secondary{background:rgba(255,255,255,0.04);color:var(--text-secondary)}
+.pricing-card .btn-pricing.secondary:hover{background:rgba(255,255,255,0.06)}
+.pricing-card .btn-pricing.ghost{border:1px solid var(--border);color:var(--text-muted)}
+/* ── Footer ───────────────────────────────── */
+footer{padding:40px 0;border-top:1px solid rgba(30,41,59,0.4);text-align:center;font-size:0.78rem;color:var(--text-muted)}
+footer a{color:var(--text-secondary);text-decoration:none;margin:0 12px;transition:color 0.2s}
+footer a:hover{color:var(--text-primary)}
+/* ── Responsive ───────────────────────────── */
+@media(max-width:1024px){.pricing-grid{grid-template-columns:repeat(2,1fr)}.feature-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.hero{padding:100px 0 60px}.hero h1{font-size:1.6rem}.hero-stats{gap:20px}.feature-grid{grid-template-columns:1fr}.pricing-grid{grid-template-columns:1fr}.navbar .actions a{display:none}.navbar .actions .btn-primary{padding:8px 16px;font-size:0.78rem}.calc-card{padding:24px}.calc-card .result-number{font-size:2.5rem}.paywall{padding:32px 20px}.scan-box{flex-direction:column;gap:8px;padding:8px}.scan-box button{width:100%}.result-preview{overflow-x:auto}.result-preview table{font-size:0.72rem}.result-preview td,.result-preview th{padding:8px 12px}}
+@media(max-width:480px){.hero h1{font-size:1.3rem}.trust-grid{gap:24px}.section{padding:48px 0}}
 </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+<nav class="navbar">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="/">
-      <i class="bi bi-shield-check text-warning me-2"></i>CodeAudit Pro
+    <a class="logo" href="/">
+      <svg viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="28" height="28" rx="8" stroke="#6366f1" stroke-width="2"/><path d="M16 8v16M8 16h16" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="4" fill="#6366f1"/></svg>
+      <span>Code<span>Audit</span> Pro</span>
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navmenu">
-      <ul class="navbar-nav ms-auto align-items-lg-center">
-        <li class="nav-item"><a class="nav-link" href="#calculadora">Calculadora</a></li>
-        <li class="nav-item"><a class="nav-link" href="#demo-section">Demo</a></li>
-        <li class="nav-item"><a class="nav-link" href="#comparativa">Comparativa</a></li>
-        <li class="nav-item"><a class="nav-link" href="#precios">Precios</a></li>
-        <li class="nav-item ms-lg-2">
-          <a class="btn btn-sm btn-primary-custom px-3 py-2" href="#demo-section">
-            <i class="bi bi-play-fill me-1"></i>Demo gratis
-          </a>
-        </li>
-      </ul>
+    <div class="status"><span class="dot"></span> SaaS Status: Operational</div>
+    <div class="actions">
+      <a href="#calculadora">Calculadora</a>
+      <a href="#resultados">Demo</a>
+      <a href="#precios">Precios</a>
+      <a href="#precios" class="btn-primary">Garantizar cumplimiento →</a>
     </div>
   </div>
 </nav>
 
-<section class="hero-section" id="hero">
-  <div class="container position-relative">
-    <div class="row align-items-center">
-      <div class="col-lg-8">
-        <h1>Tu empresa ya está en infracción NIS2.<br>Cada día sin auditoría es un día de exposición.</h1>
-        <p class="hero-sub mt-4">Auditoría de seguridad certificada en 5 minutos. Válida ante reguladores europeos. Desde 299 €.</p>
-        <div class="d-flex gap-3 mt-4 flex-wrap">
-          <a href="#demo-section" class="btn-primary-custom">
-            <i class="bi bi-play-fill me-1"></i>Analizar mi repo gratis →
-          </a>
-          <a href="/reports/demo-sample.html" target="_blank" class="btn-outline-custom">
-            <i class="bi bi-file-earmark-text me-1"></i>Ver ejemplo de informe
-          </a>
-        </div>
-        <div class="hero-stats">
-          <span class="hero-stat"><i class="bi bi-exclamation-triangle-fill"></i> NIS2 en vigor desde Oct 2024</span>
-          <span class="hero-stat"><i class="bi bi-cash-stack"></i> Multas hasta 10.000.000 €</span>
-          <span class="hero-stat"><i class="bi bi-clock-history"></i> 5 min vs 3 meses de consultoría</span>
-        </div>
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="badge">🛡️ Marco regulatorio EU · NIS2 · DORA</div>
+    <h1><span class="gradient">La auditoría automatizada de NIS2 y DORA para PYMEs tecnológicas</span></h1>
+    <p>Escanea tu repositorio en 60 segundos. Detecta brechas críticas de seguridad y blinda tu empresa ante sanciones de hasta 10.000.000 €.</p>
+    <form class="scan-box" id="heroScanForm" action="#resultados" method="GET">
+      <input type="url" id="heroRepoUrl" placeholder="https://github.com/tu-empresa/repositorio" required>
+      <button type="submit">Analizar ahora →</button>
+    </form>
+    <div class="hero-stats">
+      <span class="hero-stat">⚡ <span class="num">60 segundos</span> de escaneo</span>
+      <span class="hero-stat">🔒 <span class="num">SHA-256</span> certified</span>
+      <span class="hero-stat">📋 <span class="num">NIS2 + DORA</span> mapped</span>
+      <span class="hero-stat">🏢 <span class="num">Desde 299 €</span></span>
+    </div>
+  </div>
+</section>
+
+<section class="trust-section">
+  <div class="container">
+    <p class="label">Avalado por los marcos regulatorios europeos</p>
+    <div class="trust-grid">
+      <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>NIS2 Compliant</span>
+      <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>DORA Framework</span>
+      <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>ISO 27001 Alignment</span>
+      <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 7v5l3 3"/></svg>SHA-256 Secured</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pilares">
+  <div class="container">
+    <p class="label">Arquitectura de análisis</p>
+    <h2>Diagnóstico completo en <span class="gradient">tres pilares</span></h2>
+    <p class="sub">Cada escaneo cruza los hallazgos contra los artículos exactos de NIS2 y DORA, generando un informe con validez legal.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">🛡️</span>
+        <h3>Seguridad de Código</h3>
+        <p>Inyecciones SQL, XSS, dependencias vulnerables, mala configuración de contenedores y más de 500 reglas SAST.</p>
+        <span class="tag">Trivy · Semgrep · Bandit</span>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🔑</span>
+        <h3>Gestión de Secretos</h3>
+        <p>API keys, tokens, contraseñas en repositorios. Detección por regex + entropía en todo el historial de commits.</p>
+        <span class="tag">truffleHog · Entropía</span>
+      </div>
+      <div class="feature-card">
+        <span class="icon">⚖️</span>
+        <h3>Gobernanza Legal</h3>
+        <p>Mapeo automático contra NIS2 Art.21/23 y DORA Art.5-30. Informe ejecutivo con declaración de debida diligencia.</p>
+        <span class="tag">NIS2 · DORA · GDPR</span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="calculator-section py-5" id="calculadora">
+<section class="section" id="calculadora" style="background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
   <div class="container">
-    <h2 class="section-title">Calcula tu <span>exposición a multas</span> en 30 segundos</h2>
-    <div class="row g-4 justify-content-center">
-      <div class="col-lg-7">
-        <div class="card-surface">
-          <form id="calcForm">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Tamaño empresa</label>
-                <select class="form-select" id="calcSize">
-                  <option value="micro">Micro (1-9)</option>
-                  <option value="small">Pequeña (10-49)</option>
-                  <option value="medium">Mediana (50-249)</option>
-                  <option value="large">Grande (250+)</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Sector</label>
-                <select class="form-select" id="calcSector">
-                  <option value="tech">Tecnología</option>
-                  <option value="finance">Banca/Fintech</option>
-                  <option value="health">Salud</option>
-                  <option value="energy">Energía</option>
-                  <option value="logistics">Logística</option>
-                  <option value="retail">Retail</option>
-                  <option value="other">Otro</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Facturación</label>
-                <select class="form-select" id="calcRevenue">
-                  <option value="low">&lt;2M€</option>
-                  <option value="mid">2-10M€</option>
-                  <option value="high">10-50M€</option>
-                  <option value="veryhigh">&gt;50M€</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Cumplimiento actual</label>
-                <select class="form-select" id="calcCompliance">
-                  <option value="none">Sin medidas</option>
-                  <option value="partial">Parcial</option>
-                  <option value="most">Mayoritario</option>
-                  <option value="full">Completo</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <label class="form-label">Email <span style="color:#ef4444">*</span></label>
-                <input type="email" class="form-control" id="calcEmail" placeholder="tu@empresa.com" required>
-              </div>
-            </div>
-          </form>
-          <div id="calcResults" class="result-card">
-            <div class="row g-3 text-center">
-              <div class="col-4">
-                <div class="big-number red" id="calcMaxFine">0 €</div>
-                <div class="text-muted" style="font-size:0.72rem">Multa máxima NIS2</div>
-              </div>
-              <div class="col-4">
-                <div class="big-number gold" id="calcExposure">0 €</div>
-                <div class="text-muted" style="font-size:0.72rem">Exposición calculada</div>
-              </div>
-              <div class="col-4">
-                <div class="big-number green" id="calcSavings">0 €</div>
-                <div class="text-muted" style="font-size:0.72rem">Ahorro vs consultoría</div>
-              </div>
-            </div>
-            <div id="calcSubmitArea" class="text-center mt-3" style="display:none">
-              <button class="btn-primary-custom" id="calcSubmitBtn">
-                <i class="bi bi-send me-1"></i>Ver mi plan de remediación → 1.500 €
-              </button>
-            </div>
-          </div>
-        </div>
+    <p class="label" style="text-align:center">Calculadora de impacto financiero</p>
+    <h2 style="text-align:center">¿Cuál es tu <span class="gradient">exposición real</span> a multas?</h2>
+    <p class="sub" style="text-align:center;margin:0 auto 40px">Basado en el tamaño de tu empresa, sector y nivel de cumplimiento actual.</p>
+    <div class="calc-card">
+      <div style="text-align:center;margin-bottom:32px">
+        <div class="result-number" id="calcAmount">0 €</div>
+        <div class="result-label">Multa potencial estimada · NIS2 Art.31 / DORA Art.50</div>
+      </div>
+      <div class="slider-group">
+        <label>Tamaño empresa <span class="value" id="sizeLabel">PYME (50-249)</span></label>
+        <input type="range" id="calcSize" min="0" max="3" value="2" step="1">
+      </div>
+      <div class="slider-group">
+        <label>Sector <span class="value" id="sectorLabel">Tecnología</span></label>
+        <input type="range" id="calcSector" min="0" max="6" value="0" step="1">
+      </div>
+      <div class="slider-group">
+        <label>Cumplimiento actual <span class="value" id="compLabel">Sin medidas</span></label>
+        <input type="range" id="calcCompliance" min="0" max="3" value="0" step="1">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <input type="email" id="calcEmail" placeholder="tu@empresa.com" style="flex:1;background:var(--bg-body);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none">
+        <button class="btn-primary" id="calcSubmit" onclick="submitLead()">Recibir informe →</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:16px;font-size:0.7rem;color:var(--text-muted)">
+        <span>🏛️ NIS2: hasta 10M€ o 2% facturación</span>
+        <span>📋 DORA: hasta 1% volumen diario</span>
+        <span>⚖️ Válido ante CNMV / AEPD</span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="py-5" id="demo-section">
+<section class="section" id="resultados">
   <div class="container">
-    <h2 class="section-title">Analiza tu repositorio <span>ahora</span> — gratis, sin registro</h2>
-    <div class="row justify-content-center">
-      <div class="col-lg-6">
-        <div class="card-surface" id="demoFormContainer">
-          <form id="demoForm">
-            <div class="mb-3">
-              <label class="form-label">URL del repositorio (GitHub o GitLab público)</label>
-              <input type="url" class="form-control" id="demoRepoUrl" placeholder="https://github.com/usuario/repositorio" required>
-              <div class="error-msg" id="demoUrlError">Solo repos públicos de GitHub o GitLab</div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-control" id="demoEmail" placeholder="tu@empresa.com" required>
-            </div>
-            <button type="submit" class="btn-primary-custom w-100" id="demoSubmitBtn">
-              <i class="bi bi-play-fill me-1"></i>Iniciar análisis →
-            </button>
-          </form>
-        </div>
+    <p class="label">Reporte en vivo</p>
+    <h2>Así se ve un <span class="gradient">informe certificado</span></h2>
+    <p class="sub">Los hallazgos críticos son visibles. La remediación exacta se desbloquea al contratar.</p>
+    
+    <div class="result-preview" id="demoPreview">
+      <div class="header">
+        <span>📊 executive-report.html · Auditoría en vivo</span>
+        <span class="badge">5 hallazgos · Score: 35/100</span>
+      </div>
+      <table>
+        <thead><tr><th>Tipo</th><th>Severidad</th><th>Archivo</th><th>Descripción</th><th>Remediación</th></tr></thead>
+        <tbody>
+          <tr><td>🔑</td><td><span class="severity critical">CRITICAL</span></td><td><span class="file">.env</span></td><td>API Key expuesta (proveedor AWS)</td>
+            <td class="blur-row"><span>Rotar clave + revocar acceso IAM</span></td></tr>
+          <tr><td>🔑</td><td><span class="severity high">HIGH</span></td><td><span class="file">config/database.yml</span></td><td>Contraseña en texto plano</td>
+            <td class="blur-row"><span>git-secret → dotenv vault</span></td></tr>
+          <tr><td>📦</td><td><span class="severity critical">CRITICAL</span></td><td><span class="file">requirements.txt</span></td><td>Django 3.2 (CVE-2024-1234)</td>
+            <td class="blur-row"><span>Upgrade a Django 5.0+</span></td></tr>
+          <tr><td>🔍</td><td><span class="severity medium">MEDIUM</span></td><td><span class="file">app/views.py:142</span></td><td>Posible SQL Injection</td>
+            <td class="blur-row"><span>Prepared statements + ORM</span></td></tr>
+          <tr><td>🔍</td><td><span class="severity low">LOW</span></td><td><span class="file">Dockerfile</span></td><td>Puerto expuesto innecesario</td>
+            <td class="blur-row"><span>Eliminar EXPOSE 22</span></td></tr>
+        </tbody>
+      </table>
+    </div>
 
-        <div class="progress-area" id="demoProgressArea">
-          <div style="text-align:center">
-            <div style="font-size:2rem;margin-bottom:0.5rem" id="progressIcon">🔍</div>
-            <h5 id="progressTitle" style="color:#f1f5f9;font-weight:600">Escaneando repositorio...</h5>
-            <p class="text-muted" style="font-size:0.82rem" id="progressRepoUrl"></p>
-          </div>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="progressFill"></div>
-          </div>
-          <p style="font-size:0.82rem;color:#64748b;text-align:center" id="progressPct">0%</p>
-          <div class="demo-steps" id="demoSteps">
-            <span class="demo-step" data-step="clone"><span class="step-icon">⏳</span> Clonando</span>
-            <span class="demo-step" data-step="secrets"><span class="step-icon">⏳</span> Escaneando deps</span>
-            <span class="demo-step" data-step="code"><span class="step-icon">⏳</span> Analizando código</span>
-            <span class="demo-step" data-step="secrets2"><span class="step-icon">⏳</span> Buscando secretos</span>
-            <span class="demo-step" data-step="report"><span class="step-icon">⏳</span> Generando informe</span>
-          </div>
-          <div id="demoCompleteArea" style="display:none;text-align:center;margin-top:1rem">
-            <div style="font-size:3rem;margin-bottom:0.5rem">✅</div>
-            <h5 style="color:#10b981;font-weight:600">¡Auditoría completada!</h5>
-            <p class="text-muted" id="progressSummary"></p>
-            <a id="progressResultLink" class="btn-primary-custom mt-2">
-              <i class="bi bi-eye me-1"></i>Ver resultados →
-            </a>
-          </div>
-        </div>
-
+    <div class="paywall" id="paywallDemo">
+      <div class="lock">🔒</div>
+      <h3>Plan de remediación bloqueado</h3>
+      <p>Desbloquea el informe completo con el plan paso a paso, las CVEs exactas, el certificado SHA-256 y el PDF para auditores.</p>
+      <div class="price">299 <small>€</small></div>
+      <div class="trust-checks">
+        <span><span class="check">✓</span> Factura deducible B2B</span>
+        <span><span class="check">✓</span> Certificado SHA-256</span>
+        <span><span class="check">✓</span> Garantía de devolución</span>
+      </div>
+      <a href="/create-checkout?plan=compliance_pro" class="btn-glow" style="font-size:1rem;padding:16px 48px">Desbloquear remediación completa →</a>
+      <div class="enterprise-hatch">
+        ¿Necesitas una auditoría manual firmada por un auditor certificado? 
+        <a href="mailto:ventas@codeauditpro.com">Agendar consultoría VIP →</a>
       </div>
     </div>
   </div>
 </section>
 
-<section class="py-5" id="comparativa">
+<section class="section" id="precios">
   <div class="container">
-    <h2 class="section-title">¿Por qué <span>CodeAudit Pro</span>?</h2>
-    <div class="row justify-content-center">
-      <div class="col-lg-10">
-        <div class="card-surface p-0" style="overflow:hidden">
-          <table class="compare-table">
-            <thead>
-              <tr>
-                <th>Característica</th>
-                <th>Consultoría tradicional</th>
-                <th>CodeAudit Pro</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>Precio</td><td>15.000–80.000 €</td><td class="highlight">Desde 299 €</td></tr>
-              <tr><td>Tiempo</td><td>8–12 semanas</td><td class="highlight">5 minutos</td></tr>
-              <tr><td>NIS2/DORA nativo</td><td class="cross">✗ Básico</td><td class="check">✓ Completo</td></tr>
-              <tr><td>Certificación</td><td class="cross">✗ No</td><td class="check">✓ SHA-256 + QR</td></tr>
-              <tr><td>PDF para auditores</td><td>✓ (caro)</td><td class="check">✓ Incluido</td></tr>
-              <tr><td>Monitorización</td><td class="cross">✗ No</td><td class="check">✓ Continua</td></tr>
-              <tr><td>Precio enterprise</td><td>200.000 €/año</td><td class="highlight">29.900 €/año</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="py-5" id="precios">
-  <div class="container">
-    <h2 class="section-title">Planes <span>transparentes</span></h2>
+    <p class="label" style="text-align:center">Planes transparentes</p>
+    <h2 style="text-align:center">Invierte en <span class="gradient">cumplimiento</span>, no en multas</h2>
+    <p class="sub" style="text-align:center;margin:0 auto 40px">Sin permanencia. Precio único por auditoría. Certificado con validez legal.</p>
     <div class="pricing-grid">
       <div class="pricing-card">
-        <h5 style="color:#e2e8f0;font-weight:600">GRATIS</h5>
+        <div class="plan-name">Gratuito</div>
         <div class="price">0 <small>€</small></div>
         <ul class="features">
-          <li><i class="bi bi-check"></i> Escaneo básico</li>
-          <li><i class="bi bi-check"></i> 1 repo público</li>
-          <li><i class="bi bi-check"></i> Resumen ejecutivo</li>
+          <li>Escaneo básico (1 repo público)</li>
+          <li>Resumen ejecutivo</li>
+          <li>Hallazgos generales</li>
         </ul>
-        <a href="#demo-section" class="btn-pricing outline">Empezar gratis →</a>
+        <a href="#resultados" class="btn-pricing ghost">Probar gratis →</a>
       </div>
-
       <div class="pricing-card">
-        <h5 style="color:#e2e8f0;font-weight:600">PRO</h5>
+        <div class="plan-name">Pro</div>
         <div class="price">299 <small>€</small></div>
         <ul class="features">
-          <li><i class="bi bi-check"></i> Informe completo</li>
-          <li><i class="bi bi-check"></i> Dashboard 30 días</li>
-          <li><i class="bi bi-check"></i> Email con PDF</li>
+          <li>Informe completo + dashboard</li>
+          <li>Repos privados</li>
+          <li>PDF ejecutivo</li>
+          <li>Email con resultados</li>
         </ul>
-        <a href="/create-checkout?plan=auditoria_unica" class="btn-pricing outline">Contratar →</a>
+        <a href="/create-checkout?plan=auditoria_unica" class="btn-pricing secondary">Contratar →</a>
       </div>
-
       <div class="pricing-card featured">
-        <h5 style="color:#e2e8f0;font-weight:600">COMPLIANCE PRO</h5>
+        <div class="plan-name">Compliance Pro</div>
         <div class="price">1.500 <small>€</small></div>
         <ul class="features">
-          <li><i class="bi bi-check"></i> NIS2/DORA completo</li>
-          <li><i class="bi bi-check"></i> PDF para auditores</li>
-          <li><i class="bi bi-check"></i> Certificación SHA-256</li>
-          <li><i class="bi bi-check"></i> Válido ante reguladores</li>
+          <li>NIS2/DORA completo</li>
+          <li>Certificación SHA-256 + QR</li>
+          <li>PDF para auditores externos</li>
+          <li>Válido ante reguladores</li>
+          <li>Plan de remediación priorizado</li>
         </ul>
         <a href="/create-checkout?plan=compliance_pro" class="btn-pricing primary">Contratar →</a>
       </div>
-
       <div class="pricing-card">
-        <h5 style="color:#e2e8f0;font-weight:600">ENTERPRISE</h5>
+        <div class="plan-name">Enterprise</div>
         <div class="price">29.900 <small>€/año</small></div>
         <ul class="features">
-          <li><i class="bi bi-check"></i> Hasta 50 repos</li>
-          <li><i class="bi bi-check"></i> White-label</li>
-          <li><i class="bi bi-check"></i> SIEM + Jira</li>
-          <li><i class="bi bi-check"></i> Soporte 24/7</li>
+          <li>Hasta 50 repos</li>
+          <li>White-label personalizado</li>
+          <li>SIEM + Jira integrados</li>
+          <li>Auditoría continua</li>
+          <li>Soporte 24/7 dedicado</li>
         </ul>
         <a href="mailto:ventas@codeauditpro.com" class="btn-pricing secondary">Hablar con ventas →</a>
       </div>
@@ -345,159 +359,71 @@ footer{border-top:1px solid rgba(255,255,255,0.06);color:#475569}
   </div>
 </section>
 
-<section class="py-4">
-  <div class="container text-center">
-    <p class="text-muted" style="font-size:0.9rem">
-      <i class="bi bi-question-circle me-1"></i>¿Tienes preguntas?
-      <a href="mailto:ventas@codeauditpro.com" style="color:#f59e0b;text-decoration:none;font-weight:600">ventas@codeauditpro.com</a>
-      o <a href="https://calendly.com" target="_blank" style="color:#f59e0b;text-decoration:none;font-weight:600">Agendar llamada de 20 min →</a>
+<footer>
+  <div class="container">
+    <p>
+      <a href="/security">Seguridad</a>
+      <a href="/terms">Términos</a>
+      <a href="/privacy">Privacidad</a>
+      <a href="mailto:ventas@codeauditpro.com">Contacto</a>
     </p>
-  </div>
-</section>
-
-<footer class="py-4">
-  <div class="container text-center">
-    <p class="mb-2">
-      <a href="/security" class="text-muted me-3" style="text-decoration:none">Seguridad</a>
-      <a href="/terms" class="text-muted me-3" style="text-decoration:none">Términos</a>
-      <a href="/privacy" class="text-muted" style="text-decoration:none">Privacidad</a>
-    </p>
-    <p class="mb-0" style="font-size:0.82rem">MIT © 2026 CodeAudit Pro — Madrid, España</p>
-    <p style="font-size:0.75rem;margin-top:4px">NIF: [pendiente] — Operamos bajo legislación española y europea</p>
+    <p style="margin-top:16px">© 2026 CodeAudit Pro · Cumplimiento NIS2/DORA para PYMEs · Madrid, España</p>
+    <p style="margin-top:4px;font-size:0.7rem">MIT License · Operamos bajo legislación española y europea</p>
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const FINES = {micro:500000, small:2000000, medium:7000000, large:10000000};
-const SECTOR_FACTOR = {tech:1.0, finance:1.5, health:1.2, energy:1.3, logistics:1.0, retail:0.8, other:0.9};
-const COMPLIANCE_PROB = {none:0.60, partial:0.35, most:0.15, full:0.05};
-const TRAD_COST = {micro:12000, small:25000, medium:40000, large:80000};
-const CAP_COST = {micro:299, small:1500, medium:1500, large:29900};
+// ── Calculator ──────────────────────────────────────────────
+const SIZE_OPTS = ['Micro (1-9)','Pequeña (10-49)','PYME (50-249)','Grande (250+)'];
+const SECTOR_OPTS = ['Tecnología','Banca/Fintech','Salud','Energía','Logística','Retail','Otro'];
+const COMP_OPTS = ['Sin medidas','Parcial','Mayoritario','Completo'];
+const FINES = [500000,2000000,7000000,10000000];
+const SECTOR_FACTOR = [1.0,1.5,1.2,1.3,1.0,0.8,0.9];
+const COMPLIANCE_PROB = [0.60,0.35,0.15,0.05];
 
-function formatEur(n) {
-  return n.toLocaleString('es-ES', {style:'currency',currency:'EUR',maximumFractionDigits:0});
-}
-
-function updateCalculator() {
-  const size = document.getElementById('calcSize').value;
-  const sector = document.getElementById('calcSector').value;
-  const compliance = document.getElementById('calcCompliance').value;
-  const maxFine = FINES[size] * SECTOR_FACTOR[sector];
-  const exposure = maxFine * COMPLIANCE_PROB[compliance];
-  const savings = TRAD_COST[size] - CAP_COST[size];
-  document.getElementById('calcMaxFine').textContent = formatEur(maxFine);
-  document.getElementById('calcExposure').textContent = formatEur(exposure);
-  document.getElementById('calcSavings').textContent = formatEur(savings) + (savings > 0 ? ' ' : '');
+function updateCalc() {
+  const s = parseInt(document.getElementById('calcSize').value);
+  const sec = parseInt(document.getElementById('calcSector').value);
+  const c = parseInt(document.getElementById('calcCompliance').value);
+  document.getElementById('sizeLabel').textContent = SIZE_OPTS[s];
+  document.getElementById('sectorLabel').textContent = SECTOR_OPTS[sec];
+  document.getElementById('compLabel').textContent = COMP_OPTS[c];
+  const fine = FINES[s] * SECTOR_FACTOR[sec] * COMPLIANCE_PROB[c];
+  const fmt = fine.toLocaleString('es-ES', {style:'currency',currency:'EUR',maximumFractionDigits:0});
+  document.getElementById('calcAmount').textContent = fmt;
 }
 
 document.querySelectorAll('#calcSize, #calcSector, #calcCompliance').forEach(el => {
-  el.addEventListener('change', updateCalculator);
+  el.addEventListener('input', updateCalc);
 });
-updateCalculator();
+updateCalc();
 
-document.getElementById('calcForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
+async function submitLead() {
   const email = document.getElementById('calcEmail').value;
   if (!email) return;
-  const size = document.getElementById('calcSize').value;
-  const sector = document.getElementById('calcSector').value;
-  const revenue = document.getElementById('calcRevenue').value;
-  const compliance = document.getElementById('calcCompliance').value;
   try {
     await fetch('/submit-lead', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, sector, size, revenue, compliance_level: compliance, source: 'calculator'})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        email, sector:SECTOR_OPTS[parseInt(document.getElementById('calcSector').value)],
+        size:SIZE_OPTS[parseInt(document.getElementById('calcSize').value)],
+        compliance_level:COMP_OPTS[parseInt(document.getElementById('calcCompliance').value)],
+        source:'calculator'
+      })
     });
-  } catch(e) {}
-  document.getElementById('calcSubmitArea').style.display = 'block';
-  document.getElementById('calcSubmitBtn').onclick = function() {
-    document.getElementById('demoEmail').value = email;
-    document.getElementById('demo-section').scrollIntoView({behavior:'smooth'});
-  };
-});
-
-let currentDemoId = null;
-
-document.getElementById('demoForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const repoUrl = document.getElementById('demoRepoUrl').value.trim();
-  const email = document.getElementById('demoEmail').value.trim();
-  const urlError = document.getElementById('demoUrlError');
-  if (!repoUrl.match(/^https?:\/\/(www\.)?(github\.com|gitlab\.com)\//i)) {
-    urlError.style.display = 'block';
-    return;
-  }
-  urlError.style.display = 'none';
-  const submitBtn = document.getElementById('demoSubmitBtn');
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Iniciando...';
-  try {
-    const resp = await fetch('/demo/start', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({repo_url: repoUrl, email: email})
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      alert(err.error || 'Error al iniciar el análisis');
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Iniciar análisis →';
-      return;
-    }
-    const data = await resp.json();
-    currentDemoId = data.demo_id;
-    document.getElementById('demoFormContainer').style.display = 'none';
-    document.getElementById('demoProgressArea').style.display = 'block';
-    document.getElementById('progressRepoUrl').textContent = repoUrl;
-    connectSSE(data.demo_id);
-  } catch(err) {
-    alert('Error de conexión. Intenta de nuevo.');
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Iniciar análisis →';
-  }
-});
-
-function connectSSE(demoId) {
-  const evtSource = new EventSource('/demo/stream/' + demoId);
-  const stepNames = ['clone','secrets','code','secrets2','report'];
-  evtSource.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    const pct = data.pct || 0;
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressPct').textContent = pct + '%';
-    if (data.step && stepNames.includes(data.step)) {
-      const idx = stepNames.indexOf(data.step);
-      document.querySelectorAll('.demo-step').forEach((el, i) => {
-        el.className = 'demo-step';
-        if (i < idx) el.className = 'demo-step done';
-        else if (i === idx) el.className = 'demo-step active';
-      });
-    }
-    if (data.msg) {
-      document.getElementById('progressTitle').textContent = data.msg;
-    }
-    if (data.step === 'done' || data.step === 'complete') {
-      evtSource.close();
-      document.getElementById('progressIcon').textContent = '✅';
-      document.getElementById('progressFill').style.width = '100%';
-      document.getElementById('progressPct').textContent = '100%';
-      document.querySelectorAll('.demo-step').forEach(el => el.className = 'demo-step done');
-      document.getElementById('demoCompleteArea').style.display = 'block';
-      if (data.summary) {
-        document.getElementById('progressSummary').textContent = data.summary;
-      }
-      document.getElementById('progressResultLink').href = '/demo/result/' + demoId;
-    }
-  };
-  evtSource.onerror = function() {
-    evtSource.close();
-    if (currentDemoId) {
-      setTimeout(() => window.location.href = '/demo/result/' + currentDemoId, 1000);
-    }
-  };
+  } catch(e){}
+  document.getElementById('calcSubmit').textContent = '✅ Informe enviado';
+  setTimeout(()=>{document.getElementById('calcSubmit').textContent = 'Recibir informe →'},3000);
 }
+
+// ── Hero scan → demo page ──────────────────────────────────
+document.getElementById('heroScanForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const url = document.getElementById('heroRepoUrl').value.trim();
+  if (!url) return;
+  window.location.href = '/try-now?repo=' + encodeURIComponent(url);
+});
 </script>
 </body>
 </html>
