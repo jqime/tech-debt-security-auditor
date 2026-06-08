@@ -1,0 +1,11 @@
+[project]
+name = "codeauditpro"
+description = "CodeAudit Pro - NIS2/DORA Security Audit SaaS"
+
+[build]
+builder = "DOCKER_COMPOSE"
+
+[deploy]
+strategy = "IMMEDIATE"
+healthcheck_path = "/health"
+healthcheck_timeout = 30
