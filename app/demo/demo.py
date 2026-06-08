@@ -236,12 +236,15 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
 .paywall-cta{display:inline-block;padding:16px 48px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#070d1a;font-weight:700;font-size:1rem;text-decoration:none;transition:all 0.2s;box-shadow:0 4px 20px rgba(245,158,11,0.25)}
 .paywall-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.35);color:#070d1a}
 .fomo{position:relative;margin-bottom:2rem}
-.fomo-mask{filter:blur(4px);display:inline-block;transition:filter 0.3s}
-.fomo-mask:hover{filter:blur(0)}
+.fomo-mask{filter:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='b'><feGaussianBlur stdDeviation='5'/></filter></svg>#b") blur(8px);display:inline-block;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);user-select:none;pointer-events:none}
+.fomo-mask:hover{filter:blur(2px);opacity:0.9}
+.fomo-mask.revealed{filter:blur(0);opacity:1;user-select:auto;pointer-events:auto}
 .urgency-banner{background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid #fca5a5;border-radius:12px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .urgency-banner .text{color:#fecaca;font-size:0.85rem;font-weight:600}
 .urgency-banner .countdown{color:#fca5a5;font-family:monospace;font-size:1.2rem;font-weight:700}
 .text-muted{color:#64748b}
+@media(max-width:768px){.hero-section{padding:80px 0 40px}.hero-section h1{font-size:1.8rem}.vuln-grid{grid-template-columns:repeat(2,1fr);gap:8px}.findings-table{overflow-x:auto}.findings-table table{font-size:0.75rem}.findings-table th,.findings-table td{padding:8px 10px}.paywall-overlay{padding:1.5rem}.paywall-cta{padding:14px 28px;font-size:0.9rem;width:100%}.score-circle{width:80px;height:80px}.score-circle .score-num{font-size:2rem}.urgency-banner{flex-direction:column;text-align:center}}
+@media(max-width:480px){.hero-section h1{font-size:1.4rem}.vuln-grid{grid-template-columns:1fr}.articles-list{gap:4px}.article-tag{font-size:0.7rem;padding:4px 8px}}
 </style>
 </head>
 <body>
@@ -349,6 +352,13 @@ h1{font-size:1.8rem;font-weight:700;margin-bottom:0.25rem}
 </div>
 
 </div>
+<script>
+(function(){var s=document.createElement('div');s.id='session-timer';s.style.cssText='position:fixed;bottom:20px;right:20px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:10px 16px;z-index:9999;font-size:0.75rem;color:#94a3b8;text-align:center;max-width:200px';
+s.innerHTML='<div style="font-weight:600;color:#f59e0b;margin-bottom:4px">⏳ Sesion activa</div><div id="timer-count" style="font-family:monospace;font-size:1.1rem;color:#fbbf24">15:00</div><div style="font-size:0.65rem;color:#64748b;margin-top:2px">Resultados guardados</div>';
+document.body.appendChild(s);
+var m=15,s2=0;function t(){s2--;if(s2<0){s2=59;m--}if(m<0){document.getElementById('timer-count').textContent='00:00';document.getElementById('timer-count').style.color='#ef4444';return}var mm=String(m).padStart(2,'0'),ss=String(s2).padStart(2,'0');document.getElementById('timer-count').textContent=mm+':'+ss}setInterval(t,1000);
+try{var p=localStorage.getItem('demo_{{ demo_id }}');if(!p){localStorage.setItem('demo_{{ demo_id }}',JSON.stringify({repo:'{{ repo_url }}',score:{{ overall_score }},time:new Date().toISOString()}))}}catch(e){}})();
+</script>
 </body>
 </html>"""
 

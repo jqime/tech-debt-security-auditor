@@ -135,6 +135,14 @@ def create_checkout_session():
     return jsonify({"url": session.url, "session_id": session.id})
 
 
+@landing_bp.route("/", methods=["GET"])
+def index():
+    html_path = PROJECT_DIR / "app" / "landing" / "index.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return "<h1>CodeAudit Pro</h1><p>Landing page not found</p>", 200
+
+
 @landing_bp.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "project": "CodeAudit Pro"})

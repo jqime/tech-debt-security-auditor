@@ -1,0 +1,89 @@
+services:
+  - type: pserv
+    name: codeaudit-postgres
+    plan: free
+    env: postgres
+    region: frankfurt
+    postgresMajorVersion: 16
+
+  - type: web
+    name: codeaudit-dashboard
+    plan: free
+    env: docker
+    dockerfilePath: Dockerfile
+    repo: https://github.com/jqime/tech-debt-security-auditor
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: DASHBOARD_PORT
+        value: "5000"
+      - key: BASE_URL
+        fromService:
+          type: web
+          name: codeaudit-landing
+          property: hostname
+      - fromGroup: app-env
+    port: 5000
+
+  - type: web
+    name: codeaudit-landing
+    plan: free
+    env: docker
+    dockerfilePath: Dockerfile
+    repo: https://github.com/jqime/tech-debt-security-auditor
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: LANDING_PORT
+        value: "5001"
+      - fromGroup: app-env
+    port: 5001
+
+  - type: web
+    name: codeaudit-payments
+    plan: free
+    env: docker
+    dockerfilePath: Dockerfile
+    repo: https://github.com/jqime/tech-debt-security-auditor
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: PAYMENT_PORT
+        value: "5002"
+      - fromGroup: app-env
+    port: 5002
+
+  - type: web
+    name: codeaudit-continuous
+    plan: free
+    env: docker
+    dockerfilePath: Dockerfile
+    repo: https://github.com/jqime/tech-debt-security-auditor
+    branch: main
+    envVars:
+      - key: CONTINUOUS_PORT
+        value: "5003"
+      - fromGroup: app-env
+    port: 5003
+
+envVarGroups:
+  - name: app-env
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        value: sk_test_mock_keys_for_staging_5123
+      - key: STRIPE_WEBHOOK_SECRET
+        value: whsec_mock_secret
+      - key: EMAIL_USER
+        value: test@gmail.com
+      - key: EMAIL_PASS
+        value: mock_password_apps
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: DOMAIN
+        value: https://codeaudit-landing.onrender.com
+      - key: BASE_URL
+        value: https://codeaudit-landing.onrender.com
+      - key: DASHBOARD_USER
+        value: admin
+      - key: DASHBOARD_PASS
+        value: O97p5VdmEVIOFNG79BtSLQ

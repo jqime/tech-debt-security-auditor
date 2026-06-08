@@ -146,6 +146,75 @@ def evaluate_debt_score(debt):
     return {"complexity": comp_score, "duplication": dup_score}
 
 
+def _calculate_fine(scores, sec, debt):
+    secrets = sec.get("secrets", [])
+    sast = sec.get("sast_findings", [])
+    vuln_deps = sec.get("vulnerable_dependencies", [])
+
+    n_criticos = sum(1 for f in sast if f.get("severity", "").upper() in ("CRITICAL", "HIGH"))
+    n_criticos += sum(1 for s in secrets if s.get("severity", "").upper() in ("CRITICAL", "HIGH"))
+    n_medios = sum(1 for f in sast if f.get("severity", "").upper() == "MEDIUM")
+    n_medios += sum(1 for s in secrets if s.get("severity", "").upper() == "MEDIUM")
+    n_vuln_deps = len(vuln_deps)
+    n_secrets = len(secrets)
+    n_sast = len(sast)
+
+    # Base calculation: each critical finding adds risk
+    base_risk = 0
+    base_risk += n_criticos * 1_500_000    # up to 1.5M per critical
+    base_risk += n_medios * 300_000         # up to 300k per medium
+    base_risk += n_vuln_deps * 100_000      # 100k per vulnerable dependency
+    base_risk += n_secrets * 250_000        # 250k per exposed secret
+    base_risk += n_sast * 50_000            # 50k per SAST finding
+
+    # Cap at realistic NIS2 maximum
+    max_fine = 10_000_000
+    fine_amount = min(base_risk, max_fine)
+
+    # Determine violated articles
+    violated_articles = []
+    for key, mapping in NIS2_MAPPING.items():
+        if scores.get(key, 50) < 40:
+            violated_articles.append(f"{mapping['art']} — {mapping['name']}")
+    for key, mapping in DORA_MAPPING.items():
+        if scores.get(key, 50) < 40:
+            violated_articles.append(f"{mapping['art']} — {mapping['name']}")
+
+    dora_fine = fine_amount // 2  # DORA: typically lower than NIS2
+
+    if fine_amount >= 7_000_000:
+        text = f"HASTA {fine_amount:,} €".replace(",", ".")
+        color = "#f43f5e"
+    elif fine_amount >= 2_000_000:
+        text = f"HASTA {fine_amount:,} €".replace(",", ".")
+        color = "#fbbf24"
+    elif fine_amount >= 500_000:
+        text = f"~{fine_amount:,} €".replace(",", ".")
+        color = "#fbbf24"
+    else:
+        text = f"BAJO — ~{fine_amount:,} €".replace(",", ".")
+        color = "#10b981"
+
+    articles_html = "<br>".join(
+        f"<span style='color:#f43f5e;font-size:0.78rem;'>• {a}</span>"
+        for a in violated_articles[:5]
+    )
+    if len(violated_articles) > 5:
+        articles_html += f"<br><span style='color:#64748b;font-size:0.72rem;'>+{len(violated_articles)-5} artículos más</span>"
+
+    return {
+        "text": text,
+        "color": color,
+        "amount": fine_amount,
+        "articles": articles_html,
+        "dora_fine": dora_fine,
+        "n_criticos": n_criticos,
+        "n_medios": n_medios,
+        "n_secrets": n_secrets,
+        "n_vuln_deps": n_vuln_deps,
+    }
+
+
 def generate_html(scores, sec, debt, overall):
     import hashlib
     secrets = sec.get("secrets", [])
@@ -192,15 +261,17 @@ def generate_html(scores, sec, debt, overall):
         s = f.get("severity", "UNKNOWN").upper()
         sev_count[s] = sev_count.get(s, 0) + 1
 
-    if overall < 30:
-        fine_text = "HASTA 10.000.000 €"
-        fine_color = "#f43f5e"
-    elif overall < 60:
-        fine_text = "HASTA 2.000.000 €"
-        fine_color = "#fbbf24"
-    else:
-        fine_text = "BAJO — < 500.000 €"
-        fine_color = "#10b981"
+    fine = _calculate_fine(scores, sec, debt)
+    fine_text = fine["text"]
+    fine_color = fine["color"]
+    fine_articles = fine["articles"]
+    fine_refs = " · ".join(filter(None, [
+        f"<span style='color:{fine_color};font-weight:700;'>{fine['n_criticos']} críticos</span>" if fine['n_criticos'] else "",
+        f"<span style='color:{fine_color};'>{fine['n_medios']} medios</span>" if fine['n_medios'] else "",
+        f"<span style='color:{fine_color};'>{fine['n_secrets']} secretos</span>" if fine['n_secrets'] else "",
+        f"<span style='color:{fine_color};'>{fine['n_vuln_deps']} dependencias vulnerables</span>" if fine['n_vuln_deps'] else "",
+        "sin hallazgos" if not any([fine['n_criticos'], fine['n_medios'], fine['n_secrets'], fine['n_vuln_deps']]) else "",
+    ]))
 
     score_color = "#f43f5e" if overall < 40 else ("#fbbf24" if overall < 70 else "#10b981")
 
@@ -320,10 +391,14 @@ body{{background:#0b0f19;color:#f8fafc;font-family:'Segoe UI','Inter',system-ui,
 <div class="score-card">
 <div class="score-ring"><div class="score-value">{overall:.0f}</div></div>
 <p class="score-label">Score global de cumplimiento normativo NIS2/DORA</p>
-<div class="fine-estimate">
+    <div class="fine-estimate">
 <p class="label">Riesgo de multa potencial</p>
 <p class="amount">{fine_text}</p>
-<p class="ref">Según Art. 31 NIS2 y Art. 50 DORA</p>
+<p class="ref" style="margin-bottom:0.5rem;">Según Art. 31 NIS2 (hasta 10M€ o 2% facturación) y Art. 50 DORA (hasta 1% volumen diario)</p>
+<div style="font-size:0.72rem;color:#64748b;text-align:left;max-width:500px;margin:0 auto;padding-top:0.5rem;border-top:1px solid rgba(71,85,105,0.3);">
+{fine_refs}
+</div>
+{fine.get('articles', '')}
 </div>
 </div>
 
