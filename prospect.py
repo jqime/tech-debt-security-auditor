@@ -44,8 +44,11 @@ def generate_mock_leads(city: str, radius_km: int = 50):
 
 def save_leads(leads: list[dict]):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not leads:
+        return
+    fieldnames = list(leads[0].keys())
     with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "web", "email", "phone", "city", "radius_km"])
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(leads)
     print(f"✓ {len(leads)} leads guardados en {OUTPUT_FILE}")
@@ -55,8 +58,8 @@ def print_leads(leads: list[dict]):
     print(f"\n{'='*70}")
     print(f"  LEADS ENCONTRADOS ({len(leads)})")
     print(f"{'='*70}")
-    for i, lead in enumerate(leads[:5], 1):
-        print(f"\n  {i}. {lead['name']}")
+    for i, lead in enumerate(leads[:10], 1):
+        print(f"\n  {i}. {lead.get('name', lead.get('repo_name', '??'))}")
         print(f"     Web:    {lead['web']}")
         print(f"     Email:  {lead['email']}")
         print(f"     Tel:    {lead['phone']}")
@@ -160,19 +163,37 @@ def inject_into_drip(leads: list[dict]):
             print(f"   ⚠️  Error inyectando {email}: {e}")
 
 
+def _parse_known_args():
+    """Extrae flags comunes incluso si están intercalados."""
+    args = {"topic": "python", "limit": 5, "drip": False, "mode": "city"}
+    i = 1
+    while i < len(sys.argv):
+        a = sys.argv[i]
+        if a in ("--github", "--topic") and i + 1 < len(sys.argv):
+            args["topic"] = sys.argv[i + 1]
+            args["mode"] = "github"
+            i += 2
+        elif a == "--limit" and i + 1 < len(sys.argv):
+            args["limit"] = int(sys.argv[i + 1])
+            i += 2
+        elif a == "--drip":
+            args["drip"] = True
+            i += 1
+        else:
+            args.setdefault("positional", []).append(a)
+            i += 1
+    return args
+
+
 def main():
-    if len(sys.argv) < 2:
-        print("Uso: python3 prospect.py <CIUDAD|--github <topic>> [radio_km]")
-        print("Ej:  python3 prospect.py Madrid")
-        print("Ej:  python3 prospect.py --github fintech")
-        print("Ej:  python3 prospect.py --github python --drip")
-        sys.exit(1)
+    args = _parse_known_args()
+    do_drip = args["drip"]
 
-    do_drip = "--drip" in sys.argv
-
-    if sys.argv[1] == "--github":
-        topic = sys.argv[2] if len(sys.argv) > 2 else "python"
-        leads = scrape_github_commits(topic)
+    if args["mode"] == "github":
+        topic = args["topic"]
+        limit = args["limit"]
+        print(f"🔍 Buscando hasta {limit} repos sobre '{topic}' en GitHub...")
+        leads = scrape_github_commits(topic, max_repos=limit)
         if leads:
             # Save to DB leads table
             try:
@@ -196,8 +217,13 @@ def main():
                 inject_into_drip(leads)
         return
 
-    city = sys.argv[1]
-    radius = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 50
+    city = args.get("positional", [None])[0] if args.get("positional") else None
+    if not city:
+        print("Uso: python3 prospect.py <CIUDAD|--topic <topic>> [--limit N] [--drip]")
+        print("Ej:  python3 prospect.py --topic fintech --limit 20 --drip")
+        print("Ej:  python3 prospect.py Madrid 50")
+        sys.exit(1)
+    radius = int(args.get("positional", [None, "50"])[1]) if len(args.get("positional", [])) > 1 else 50
 
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
 
