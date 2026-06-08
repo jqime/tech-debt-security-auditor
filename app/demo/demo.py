@@ -544,8 +544,25 @@ def result_demo(demo_id):
         elif sev == "critical":
             vuln_counts["critical"] += 1
 
+    # Check if user has paid → unlock all findings
+    is_paid = False
+    if email:
+        try:
+            from app.db import get_db
+            db = get_db()
+            paid = db.execute(
+                """SELECT 1 FROM payments p
+                   JOIN users u ON p.user_id = u.id
+                   WHERE u.email = ? AND p.status = 'completed'""",
+                (email,),
+            ).fetchone()
+            db.close()
+            is_paid = paid is not None
+        except Exception:
+            pass
+
     # All findings visible (FOMO teaser), premium details masked
-    hidden_count = max(0, len(all_findings) - 2)
+    hidden_count = 0 if is_paid else max(0, len(all_findings) - 2)
     # Price based on plan
     price = "1.500" if len(all_findings) > 10 else "299"
 

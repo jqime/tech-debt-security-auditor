@@ -230,6 +230,16 @@ def process_task(task: dict) -> bool:
     if compliance_pdf.exists():
         print(f"  ✓ Compliance PDF generado")
 
+    # Certify report with SHA-256 + QR
+    try:
+        subprocess.run(
+            [sys.executable, str(PROJECT_DIR / "certify.py"), "--certify"],
+            cwd=str(PROJECT_DIR), capture_output=True, timeout=60,
+        )
+        print("  🔏 Informe certificado con SHA-256 + QR")
+    except Exception as e:
+        print(f"  ⚠️ Error en certificación: {e}")
+
     # Register reports for multi-tenant access control
     _register_reports(task_id, task.get("user_id", 0), repo_url)
 
